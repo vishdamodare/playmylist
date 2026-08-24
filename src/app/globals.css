@@ -1428,8 +1428,10 @@ canvas#wave {
 /* ── PLAYER ── */
 .pml-player {
   position: fixed;
-  left: 5vw;
-  right: 5vw;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 48px);
+  max-width: 820px;
   bottom: 24px;
   z-index: 40;
   display: flex;
