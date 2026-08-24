@@ -21,7 +21,7 @@ export default function PlayMyList() {
       if (playlistConfig && playlistConfig.playlistId) {
         const parsed = parsePlaylistInput(playlistConfig.playlistId);
         if (parsed.provider === "youtube" && parsed.id) {
-          provider.loadPlaylist(parsed.id);
+          provider.loadPlaylist(parsed.id, parsed.type);
         }
       }
     },

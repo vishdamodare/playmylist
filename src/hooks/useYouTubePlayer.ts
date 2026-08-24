@@ -55,7 +55,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
   const playerRef = useRef<YT.Player | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingPlaylistRef = useRef<{ id: string; autoplay: boolean } | null>(null);
+  const pendingPlaylistRef = useRef<{ id: string; type?: "playlist" | "video"; autoplay: boolean } | null>(null);
 
   const startProgressPolling = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -153,9 +153,9 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
               // Process pending playlist if any
               if (pendingPlaylistRef.current) {
-                const { id, autoplay } = pendingPlaylistRef.current;
+                const { id, type, autoplay } = pendingPlaylistRef.current;
                 pendingPlaylistRef.current = null;
-                handleLoadPlaylist(id, autoplay);
+                handleLoadPlaylist(id, type, autoplay);
               }
             },
             onStateChange: (event: YT.OnStateChangeEvent) => {
@@ -243,16 +243,16 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
   }, [containerId, startProgressPolling, stopProgressPolling, updateTrackInfo]);
 
   const handleLoadPlaylist = useCallback(
-    (playlistId: string, autoplay: boolean = true) => {
+    (id: string, type: "playlist" | "video" = "playlist", autoplay: boolean = true) => {
       setPlayerState((prev) => ({
         ...prev,
-        playlistId,
+        playlistId: id,
         currentTime: 0,
         error: null,
       }));
 
       // Check if this is a placeholder ID
-      if (playlistId.startsWith("REPLACE_WITH_")) {
+      if (id.startsWith("REPLACE_WITH_")) {
         setPlayerState((prev) => ({
           ...prev,
           isPlaying: false,
@@ -262,32 +262,47 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
         return;
       }
 
-      if (!playerRef.current || !playerRef.current.loadPlaylist) {
-        pendingPlaylistRef.current = { id: playlistId, autoplay };
+      const player = playerRef.current as any;
+      if (!player || (!player.loadPlaylist && !player.loadVideoById)) {
+        pendingPlaylistRef.current = { id, type, autoplay };
         return;
       }
 
       try {
-        if (autoplay) {
-          playerRef.current.loadPlaylist({
-            list: playlistId,
-            listType: "playlist",
-            index: 0,
-            startSeconds: 0,
-          });
+        if (type === "video") {
+          if (autoplay && player.loadVideoById) {
+            player.loadVideoById({
+              videoId: id,
+              startSeconds: 0,
+            });
+          } else if (player.cueVideoById) {
+            player.cueVideoById({
+              videoId: id,
+              startSeconds: 0,
+            });
+          }
         } else {
-          playerRef.current.cuePlaylist({
-            list: playlistId,
-            listType: "playlist",
-            index: 0,
-            startSeconds: 0,
-          });
+          if (autoplay && player.loadPlaylist) {
+            player.loadPlaylist({
+              list: id,
+              listType: "playlist",
+              index: 0,
+              startSeconds: 0,
+            });
+          } else if (player.cuePlaylist) {
+            player.cuePlaylist({
+              list: id,
+              listType: "playlist",
+              index: 0,
+              startSeconds: 0,
+            });
+          }
         }
       } catch (err) {
-        console.error("Error loading playlist:", err);
+        console.error("Error loading media:", err);
         setPlayerState((prev) => ({
           ...prev,
-          error: "Unable to load YouTube playlist.",
+          error: "Unable to load YouTube audio.",
         }));
       }
     },
