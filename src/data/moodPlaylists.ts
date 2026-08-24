@@ -1,25 +1,20 @@
-export interface MoodPlaylistConfig {
-  playlistId: string; // Accepts YouTube playlist ID/URL OR Spotify playlist ID/URL
-  type?: "youtube" | "spotify";
-}
-
-export const moodPlaylists: Record<string, MoodPlaylistConfig> = {
+export const moodPlaylists: Record<string, { playlistId: string }> = {
   "in-love": {
-    playlistId: "0GX1Nf35vyp7s6ZLQBUxRj?si=MJYMBl34RvKTYNPdWWa-MQ&pi=Av97Zt0yTUCSY&flow_ctx=88f82793-9b8e-419f-9a12-ef97385c8907%3A1787614877&utm_source=whatsapp&pt_success=1&nd=1&dlsi=20c707b19e344f15",
+    playlistId: "https://www.youtube.com/watch?v=fHI8X4893Ts", // Full Song (e.g. Perfect / In Love) - Supports full playback
   },
   heartbroken: {
-    playlistId: "https://music.youtube.com/watch?v=kocA_1m9C0Y",
+    playlistId: "https://www.youtube.com/watch?v=kocA_1m9C0Y",
   },
   "one-sided": {
-    playlistId: "https://music.youtube.com/watch?v=Ha4fSclVanI&list=PLXs1qVXRDTds",
+    playlistId: "https://www.youtube.com/watch?v=Ha4fSclVanI", // Full Song (Husn - Anuv Jain)
   },
   "long-distance": {
-    playlistId: "https://music.youtube.com/watch?v=cG4ME1stMS4&list=PLClxOfevhibo",
+    playlistId: "https://www.youtube.com/watch?v=cG4ME1stMS4", // Full Song (Faasle - Aditya Rikhari)
   },
   lonely: {
-    playlistId: "https://music.youtube.com/watch?v=jfKfPfyJRdk",
+    playlistId: "https://www.youtube.com/watch?v=jfKfPfyJRdk",
   },
   "late-night": {
-    playlistId: "https://music.youtube.com/watch?v=5qap5aO4i9A",
+    playlistId: "https://www.youtube.com/watch?v=5qap5aO4i9A",
   },
 };
