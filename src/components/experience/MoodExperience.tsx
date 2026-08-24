@@ -142,6 +142,7 @@ export function MoodExperience({
           >
             {mood.videoSrc ? (
               <video
+                key={mood.videoSrc}
                 className="pml-visual-video"
                 src={mood.videoSrc}
                 autoPlay
@@ -149,29 +150,29 @@ export function MoodExperience({
                 muted
                 playsInline
               />
-            ) : null}
-
-            <div className="pml-visual-art">
-              <div
-                className="pml-visual-blur1"
-                style={
-                  {
-                    background: t.accent,
-                    "--pulse": `${t.pulse}s`,
-                  } as React.CSSProperties
-                }
-              />
-              <div
-                className="pml-visual-blur2"
-                style={
-                  {
-                    background: t.accent2,
-                    "--pulse": `${t.pulse}s`,
-                  } as React.CSSProperties
-                }
-              />
-              <div className="pml-visual-lines" />
-            </div>
+            ) : (
+              <div className="pml-visual-art">
+                <div
+                  className="pml-visual-blur1"
+                  style={
+                    {
+                      background: t.accent,
+                      "--pulse": `${t.pulse}s`,
+                    } as React.CSSProperties
+                  }
+                />
+                <div
+                  className="pml-visual-blur2"
+                  style={
+                    {
+                      background: t.accent2,
+                      "--pulse": `${t.pulse}s`,
+                    } as React.CSSProperties
+                  }
+                />
+                <div className="pml-visual-lines" />
+              </div>
+            )}
             <MoodFx mood={mood} />
 
             <button
