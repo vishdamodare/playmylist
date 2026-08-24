@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Sun, Moon } from "lucide-react";
 
 interface HomeProps {
   onSelectMood: (slug: string) => void;
@@ -37,22 +38,31 @@ function lerpColor(
 }
 
 export function Home({ onSelectMood }: HomeProps) {
+  const [skyMode, setSkyMode] = useState<"morning" | "night">("night");
+
   const sceneCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const tagRef = useRef<HTMLDivElement | null>(null);
   const ambientRef = useRef<HTMLDivElement | null>(null);
   const moodGlowRef = useRef<HTMLDivElement | null>(null);
-  const strikeRef = useRef<HTMLDivElement | null>(null);
   const moodWordRef = useRef<HTMLElement | null>(null);
 
-  // Background scene cycler: Space -> Sun -> Rain -> Night -> repeat
+  const skyProgressRef = useRef(0); // 0 = night, 1 = morning
+  const targetSkyProgressRef = useRef(0);
+
+  useEffect(() => {
+    targetSkyProgressRef.current = skyMode === "morning" ? 1 : 0;
+    if (tagRef.current) {
+      tagRef.current.textContent = skyMode === "morning" ? "Golden Hour" : "Deep Space";
+    }
+  }, [skyMode]);
+
+  // Background scene engine with Morning (Rising Sun) & Night (Galaxy/Moon)
   useEffect(() => {
     const canvas = sceneCanvasRef.current;
     const waveCanvas = waveCanvasRef.current;
-    const tagEl = tagRef.current;
     const ambientEl = ambientRef.current;
-    const strikeEl = strikeRef.current;
-    if (!canvas || !waveCanvas || !tagEl || !ambientEl || !strikeEl) return;
+    if (!canvas || !waveCanvas || !ambientEl) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -64,50 +74,18 @@ export function Home({ onSelectMood }: HomeProps) {
     let DPR = 1;
 
     let stars: Array<{ x: number; y: number; r: number; phase: number; speed: number }> = [];
-    let drops: Array<{ x: number; y: number; len: number; speed: number; alpha: number; gust: number }> = [];
-    let fogBands: Array<{ y: number; x: number; w: number; h: number; speed: number; alpha: number }> = [];
     let sunSparks: Array<{ ang: number; dist: number; r: number; phase: number; speed: number }> = [];
 
     const buildStars = () => {
       stars = [];
-      const count = Math.floor((W * H) / (9000 * DPR * DPR));
+      const count = Math.floor((W * H) / (8000 * DPR * DPR));
       for (let i = 0; i < count; i++) {
         stars.push({
           x: Math.random() * W,
-          y: Math.random() * H * 0.85,
+          y: Math.random() * H * 0.88,
           r: (Math.random() * 1.4 + 0.3) * DPR,
           phase: Math.random() * Math.PI * 2,
           speed: 0.0006 + Math.random() * 0.0012,
-        });
-      }
-    };
-
-    const buildRain = () => {
-      drops = [];
-      const count = Math.floor((W * H) / (5000 * DPR * DPR));
-      for (let i = 0; i < count; i++) {
-        drops.push({
-          x: Math.random() * W,
-          y: Math.random() * H,
-          len: (10 + Math.random() * 18) * DPR,
-          speed: (7 + Math.random() * 9) * DPR,
-          alpha: 0.18 + Math.random() * 0.3,
-          gust: 0.6 + Math.random() * 0.8,
-        });
-      }
-    };
-
-    const buildFog = () => {
-      fogBands = [];
-      const count = 5;
-      for (let i = 0; i < count; i++) {
-        fogBands.push({
-          y: H * (0.1 + i * 0.16) + Math.random() * H * 0.05,
-          x: Math.random() * W,
-          w: W * (0.55 + Math.random() * 0.5),
-          h: H * (0.08 + Math.random() * 0.06),
-          speed: (18 + Math.random() * 24) * DPR,
-          alpha: 0.03 + Math.random() * 0.035,
         });
       }
     };
@@ -135,8 +113,6 @@ export function Home({ onSelectMood }: HomeProps) {
       canvas.style.width = `${window.innerWidth}px`;
       canvas.style.height = `${window.innerHeight}px`;
       buildStars();
-      buildRain();
-      buildFog();
       buildSparks();
     };
 
@@ -157,6 +133,7 @@ export function Home({ onSelectMood }: HomeProps) {
       ]);
       ctx.fillRect(0, 0, W, H);
 
+      // Swirling drifting nebula clouds
       const blobs = [
         { x: W * 0.22, y: H * 0.28, r: Math.max(W, H) * 0.28, c: "rgba(123,143,224,0.10)" },
         { x: W * 0.78, y: H * 0.18, r: Math.max(W, H) * 0.22, c: "rgba(154,111,217,0.10)" },
@@ -170,6 +147,7 @@ export function Home({ onSelectMood }: HomeProps) {
         ctx.fillRect(0, 0, W, H);
       });
 
+      // Twinkling stars
       stars.forEach((s) => {
         const tw = 0.5 + 0.5 * Math.sin(time * s.speed + s.phase);
         ctx.beginPath();
@@ -177,9 +155,30 @@ export function Home({ onSelectMood }: HomeProps) {
         ctx.fillStyle = `rgba(243,236,228,${0.25 + tw * 0.65})`;
         ctx.fill();
       });
+
+      // Glowing Crescent Moon
+      const mx = W * 0.74;
+      const my = H * 0.22;
+      const mr = Math.min(W, H) * 0.075;
+      const glow = ctx.createRadialGradient(mx, my, 0, mx, my, mr * 3.4);
+      glow.addColorStop(0, "rgba(210,215,255,0.28)");
+      glow.addColorStop(1, "rgba(210,215,255,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.beginPath();
+      ctx.arc(mx, my, mr, 0, Math.PI * 2);
+      ctx.fillStyle = "#eceaf5";
+      ctx.fill();
+
+      // Crescent shadow
+      ctx.beginPath();
+      ctx.arc(mx + mr * 0.42, my - mr * 0.12, mr * 0.92, 0, Math.PI * 2);
+      ctx.fillStyle = "#0b0e22";
+      ctx.fill();
     };
 
-    const drawSun = (time: number) => {
+    const drawSun = (time: number, progress: number) => {
       ctx.fillStyle = grad(0, H, [
         [0, "#1c0f26"],
         [0.4, "#3a1a2c"],
@@ -189,13 +188,21 @@ export function Home({ onSelectMood }: HomeProps) {
       ]);
       ctx.fillRect(0, 0, W, H);
 
-      const cx = W * 0.5;
-      const horizonY = H * 0.74;
+      // Rising path: smoothly moves from bottom center (W*0.5, H*0.88) to top right corner (W*0.80, H*0.22)
+      const startX = W * 0.5;
+      const startY = H * 0.88;
+      const targetX = W * 0.8;
+      const targetY = H * 0.22;
+
+      const eased = progress * progress * (3 - 2 * progress);
       const bob = Math.sin(time * 0.0006) * H * 0.008;
-      const cy = horizonY - H * 0.08 + bob;
-      const r = Math.min(W, H) * 0.145;
+      const cx = lerp(startX, targetX, eased);
+      const cy = lerp(startY, targetY, eased) + bob;
+      const r = Math.min(W, H) * (0.135 - 0.02 * eased);
       const shimmer = 0.92 + 0.08 * Math.sin(time * 0.0021);
 
+      // Atmospheric haze
+      const horizonY = H * 0.74;
       const haze = ctx.createRadialGradient(cx, horizonY, 0, cx, horizonY, Math.max(W, H) * 0.62);
       haze.addColorStop(0, "rgba(255,196,120,0.35)");
       haze.addColorStop(0.5, "rgba(232,137,79,0.14)");
@@ -203,6 +210,7 @@ export function Home({ onSelectMood }: HomeProps) {
       ctx.fillStyle = haze;
       ctx.fillRect(0, 0, W, H);
 
+      // Rotating additive god-rays
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(time * 0.00007);
@@ -225,6 +233,7 @@ export function Home({ onSelectMood }: HomeProps) {
       }
       ctx.restore();
 
+      // Broad pulsing corona glow
       const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 4.2 * shimmer);
       glow.addColorStop(0, `rgba(255,236,196,${0.7 * shimmer})`);
       glow.addColorStop(0.32, "rgba(255,210,150,0.34)");
@@ -233,6 +242,7 @@ export function Home({ onSelectMood }: HomeProps) {
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, W, H);
 
+      // Core sun disk
       const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * shimmer);
       core.addColorStop(0, "#fffdf6");
       core.addColorStop(0.45, "#ffe8b8");
@@ -243,11 +253,13 @@ export function Home({ onSelectMood }: HomeProps) {
       ctx.fillStyle = core;
       ctx.fill();
 
+      // Hot white hotspot center
       ctx.beginPath();
       ctx.arc(cx, cy, r * 0.34, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255,255,255,0.92)";
       ctx.fill();
 
+      // Twinkling heat sparkle points
       sunSparks.forEach((sp) => {
         const tw = 0.4 + 0.6 * Math.max(0, Math.sin(time * sp.speed + sp.phase));
         const sx = cx + Math.cos(sp.ang) * r * sp.dist;
@@ -258,6 +270,7 @@ export function Home({ onSelectMood }: HomeProps) {
         ctx.fill();
       });
 
+      // Lens-flare dots trailing away
       const vx = cx - W * 0.5;
       const vy = cy - H * 0.5;
       [0.35, 0.6, 0.9, 1.25].forEach((fp, i) => {
@@ -273,6 +286,7 @@ export function Home({ onSelectMood }: HomeProps) {
         ctx.fill();
       });
 
+      // Distant hill silhouette
       ctx.beginPath();
       ctx.moveTo(0, horizonY + H * 0.02);
       const peaks = [0.05, 0.16, 0.24, 0.34, 0.44, 0.5, 0.58, 0.68, 0.78, 0.88, 0.97];
@@ -291,205 +305,48 @@ export function Home({ onSelectMood }: HomeProps) {
       ctx.fillStyle = hillGrad;
       ctx.fill();
 
+      // Horizon light spill
       ctx.fillStyle = `rgba(255,214,150,${0.08 * shimmer})`;
       ctx.fillRect(0, horizonY - H * 0.01, W, H * 0.03);
     };
 
-    let windPhase = 0;
-    const drawRain = (time: number, rainWeight: number) => {
-      ctx.fillStyle = grad(0, H, [
-        [0, "#0c0f16"],
-        [0.55, "#141a24"],
-        [1, "#1c2430"],
-      ]);
-      ctx.fillRect(0, 0, W, H);
-
-      const flashGlow = flashAlpha * 0.5;
-      const mist = ctx.createRadialGradient(W * 0.5, H * 0.05, 0, W * 0.5, H * 0.05, Math.max(W, H) * 0.7);
-      mist.addColorStop(0, `rgba(150,168,196,${0.1 + flashGlow})`);
-      mist.addColorStop(1, "rgba(140,160,190,0)");
-      ctx.fillStyle = mist;
-      ctx.fillRect(0, 0, W, H);
-
-      windPhase += 0.006;
-      const gust = 0.5 + 0.5 * Math.sin(windPhase) + 0.25 * Math.sin(windPhase * 2.7 + 1.4);
-      const windStrength = Math.max(0, Math.min(1.3, gust));
-
-      fogBands.forEach((f) => {
-        f.x += f.speed * (0.4 + windStrength) * 0.016;
-        if (f.x - f.w > W) f.x = -f.w;
-        const fg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.w * 0.5);
-        fg.addColorStop(0, `rgba(200,212,228,${f.alpha})`);
-        fg.addColorStop(1, "rgba(200,212,228,0)");
-        ctx.save();
-        ctx.scale(1, f.h / f.w);
-        ctx.translate(0, f.y * (1 - f.w / f.h));
-        ctx.fillStyle = fg;
-        ctx.fillRect(0, 0, W, H * (f.w / f.h));
-        ctx.restore();
-      });
-
-      ctx.lineCap = "round";
-      const slant = (2 + windStrength * 9) * DPR;
-      drops.forEach((d) => {
-        const localWind = slant * d.gust;
-        d.y += d.speed * (0.7 + windStrength * 0.6);
-        d.x -= localWind * 0.12;
-        if (d.y - d.len > H) {
-          d.y = -d.len;
-          d.x = Math.random() * W;
-        }
-        if (d.x < -20 * DPR) {
-          d.x = W + 20 * DPR;
-        }
-        ctx.strokeStyle = `rgba(190,210,230,${d.alpha + flashGlow * 0.4})`;
-        ctx.lineWidth = 1 * DPR;
-        ctx.beginPath();
-        ctx.moveTo(d.x, d.y);
-        ctx.lineTo(d.x - localWind, d.y + d.len);
-        ctx.stroke();
-      });
-    };
-
-    const drawNight = (time: number) => {
-      ctx.fillStyle = grad(0, H, [
-        [0, "#050611"],
-        [0.6, "#0b0e22"],
-        [1, "#141230"],
-      ]);
-      ctx.fillRect(0, 0, W, H);
-
-      const mx = W * 0.74;
-      const my = H * 0.22;
-      const mr = Math.min(W, H) * 0.075;
-      const glow = ctx.createRadialGradient(mx, my, 0, mx, my, mr * 3.4);
-      glow.addColorStop(0, "rgba(210,215,255,0.28)");
-      glow.addColorStop(1, "rgba(210,215,255,0)");
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, W, H);
-
-      ctx.beginPath();
-      ctx.arc(mx, my, mr, 0, Math.PI * 2);
-      ctx.fillStyle = "#eceaf5";
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(mx + mr * 0.42, my - mr * 0.12, mr * 0.92, 0, Math.PI * 2);
-      ctx.fillStyle = "#0b0e22";
-      ctx.fill();
-
-      stars.forEach((s, i) => {
-        if (i % 2 === 0) return;
-        const tw = 0.5 + 0.5 * Math.sin(time * s.speed * 0.7 + s.phase);
-        ctx.beginPath();
-        ctx.arc(s.x, s.y * 0.9, s.r * 0.9, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(230,228,245,${0.18 + tw * 0.5})`;
-        ctx.fill();
-      });
-    };
-
-    const scenes = [
-      { name: "Deep Space", draw: (t: number) => drawSpace(t), ambient: [42, 31, 102] },
-      { name: "Golden Hour", draw: (t: number) => drawSun(t), ambient: [110, 58, 30] },
-      { name: "Raining", draw: (t: number, rw: number) => drawRain(t, rw), ambient: [28, 38, 54] },
-      { name: "Night", draw: (t: number) => drawNight(t), ambient: [24, 26, 66] },
-    ];
-
-    const HOLD = 5200;
-    const TRANSITION = 2200;
-    const SEGMENT = HOLD + TRANSITION;
-
-    let lastTagIndex = -1;
-    let flashAlpha = 0;
-    let nextFlashTime = 3200 + Math.random() * 2500;
-
-    const triggerFlash = (intensity: number) => {
-      const peak = (0.75 + Math.random() * 0.25) * intensity;
-      strikeEl.style.transition = "none";
-      strikeEl.style.opacity = String(peak);
-      flashAlpha = peak;
-      requestAnimationFrame(() => {
-        strikeEl.style.transition = "opacity 0.6s ease-out";
-        strikeEl.style.opacity = "0";
-      });
-      setTimeout(() => {
-        flashAlpha = 0;
-      }, 550);
-
-      canvas.classList.remove("thunder-shake");
-      waveCanvas.classList.remove("thunder-shake");
-      void canvas.offsetWidth;
-      canvas.classList.add("thunder-shake");
-      waveCanvas.classList.add("thunder-shake");
-
-      if (Math.random() < 0.45) {
-        setTimeout(() => triggerFlash(intensity * 0.6), 90 + Math.random() * 140);
-      }
-    };
-
     const frame = (time: number) => {
-      const total = SEGMENT * scenes.length;
-      const t = time % total;
-      const idx = Math.floor(t / SEGMENT);
-      const into = t - idx * SEGMENT;
-      const nextIdx = (idx + 1) % scenes.length;
-      const eased =
-        into > HOLD
-          ? (() => {
-              const b = Math.min(1, (into - HOLD) / TRANSITION);
-              return b * b * (3 - 2 * b);
-            })()
-          : 0;
+      // Smoothly interpolate sky progress: 0 (Night) <-> 1 (Morning)
+      skyProgressRef.current = lerp(skyProgressRef.current, targetSkyProgressRef.current, 0.035);
+      const p = skyProgressRef.current;
 
-      const RAIN_IDX = 2;
-      let rainWeight = 0;
-      if (idx === RAIN_IDX) rainWeight = into > HOLD ? 1 - eased : 1;
-      else if (nextIdx === RAIN_IDX && into > HOLD) rainWeight = eased;
+      ctx.clearRect(0, 0, W, H);
 
-      scenes[idx].draw(time, rainWeight);
-
-      if (into > HOLD) {
+      // Night Space Scene
+      if (p < 0.99) {
         ctx.save();
-        ctx.globalAlpha = eased;
-        scenes[nextIdx].draw(time, rainWeight);
+        ctx.globalAlpha = 1 - p;
+        drawSpace(time);
         ctx.restore();
-        if (eased > 0.5 && lastTagIndex !== nextIdx) {
-          lastTagIndex = nextIdx;
-          tagEl.style.opacity = "0";
-          setTimeout(() => {
-            tagEl.textContent = scenes[nextIdx].name;
-            tagEl.style.opacity = "0.75";
-          }, 180);
-        }
-      } else if (lastTagIndex !== idx && into < 60) {
-        lastTagIndex = idx;
-        tagEl.textContent = scenes[idx].name;
       }
 
-      const a = scenes[idx].ambient;
-      const b = scenes[nextIdx].ambient;
-      const mix = into > HOLD ? eased : 0;
-      const rC = Math.round(a[0] + (b[0] - a[0]) * mix);
-      const gC = Math.round(a[1] + (b[1] - a[1]) * mix);
-      const bC = Math.round(a[2] + (b[2] - a[2]) * mix);
+      // Morning Sun Scene
+      if (p > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = p;
+        drawSun(time, p);
+        ctx.restore();
+      }
+
+      // Atmospheric ambient tint
+      const nightAmbient = [34, 28, 66];
+      const morningAmbient = [110, 58, 30];
+      const rC = Math.round(lerp(nightAmbient[0], morningAmbient[0], p));
+      const gC = Math.round(lerp(nightAmbient[1], morningAmbient[1], p));
+      const bC = Math.round(lerp(nightAmbient[2], morningAmbient[2], p));
       ambientEl.style.backgroundColor = `rgb(${rC},${gC},${bC})`;
-
-      if (rainWeight > 0.35) {
-        if (time > nextFlashTime) {
-          triggerFlash(0.6 + rainWeight * 0.4);
-          nextFlashTime = time + 2600 + Math.random() * 5200;
-        }
-      } else if (time > nextFlashTime - 1500) {
-        nextFlashTime = time + 2600 + Math.random() * 4000;
-      }
 
       if (!reduced) animId = requestAnimationFrame(frame);
     };
 
     if (reduced) {
       drawSpace(0);
-      tagEl.textContent = "Deep Space";
-      ambientEl.style.backgroundColor = "rgb(42,31,102)";
+      ambientEl.style.backgroundColor = "rgb(34,28,66)";
     } else {
       animId = requestAnimationFrame(frame);
     }
@@ -570,7 +427,6 @@ export function Home({ onSelectMood }: HomeProps) {
     // Attach listeners to mood buttons
     const buttons = document.querySelectorAll<HTMLButtonElement>(".pml-newhome-mood");
     let activeBtn: HTMLButtonElement | null = null;
-
     const cleanupFns: Array<() => void> = [];
 
     buttons.forEach((btn) => {
@@ -624,13 +480,33 @@ export function Home({ onSelectMood }: HomeProps) {
       <div className="veil" />
       <div className="ambient" id="ambient" ref={ambientRef} />
       <div className="mood-glow" id="moodGlow" ref={moodGlowRef} />
-      <div className="strike" id="strike" ref={strikeRef} />
       <div className="scene-tag" id="sceneTag" ref={tagRef}>
         Deep Space
       </div>
 
       <header>
         <div className="wordmark">PLAYMYLIST</div>
+
+        {/* Morning / Night Mode Pill Switcher */}
+        <div className="pml-sky-switcher" role="group" aria-label="Sky mode switcher">
+          <button
+            className={`pml-sky-btn ${skyMode === "morning" ? "active" : ""}`}
+            onClick={() => setSkyMode("morning")}
+            aria-pressed={skyMode === "morning"}
+          >
+            <Sun size={12} className="text-amber-300" />
+            <span>Morning</span>
+          </button>
+          <button
+            className={`pml-sky-btn ${skyMode === "night" ? "active" : ""}`}
+            onClick={() => setSkyMode("night")}
+            aria-pressed={skyMode === "night"}
+          >
+            <Moon size={12} className="text-indigo-300" />
+            <span>Night</span>
+          </button>
+        </div>
+
         <nav>
           <a href="#">Discover</a>
           <a href="#">Stories</a>

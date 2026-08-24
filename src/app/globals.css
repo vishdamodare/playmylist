@@ -196,6 +196,44 @@ canvas#wave {
   font-weight: 700;
 }
 
+.pml-sky-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(243, 236, 228, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.pml-sky-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: var(--fg-dim);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.pml-sky-btn:hover {
+  color: var(--fg);
+}
+
+.pml-sky-btn.active {
+  background: rgba(243, 236, 228, 0.12);
+  color: var(--fg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
 .pml-newhome nav {
   display: flex;
   gap: 2.6rem;
