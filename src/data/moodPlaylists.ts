@@ -1,24 +1,24 @@
 export interface MoodPlaylistConfig {
-  playlistId: string; // Complete YouTube Playlist ID (PL...) or full Playlist URL
+  playlistId: string; // Complete YouTube Playlist ID (PL...) or full Playlist URL / Spotify URL
 }
 
 export const moodPlaylists: Record<string, MoodPlaylistConfig> = {
   "in-love": {
-    playlistId: "PL4fGSIFgk5kWzZ_7QdYy0u5F6o_xXw",
+    playlistId: "https://open.spotify.com/playlist/0GX1Nf35vyp7s6ZLQBUxRj?si=MJYMBl34RvKTYNPdWWa-MQ&utm_source=whatsapp&pi=Av97Zt0yTUCSY&pt_success=1&nd=1&dlsi=6147ea9655b14220",
   },
   heartbroken: {
-    playlistId: "PL3-sRm8xAzY-w9GS19pPWFBEqptdWpY_s",
+    playlistId: "PLwxNMb28XmpeypJMHfNbJ4RAFkRtmAN3P",
   },
   "one-sided": {
-    playlistId: "PLgzTt0k8mXzEk586ze4Bjvy132184n371",
+    playlistId: "PLwxNMb28XmpcpxBm1RoGRx4mVKNRIrKkG",
   },
   "long-distance": {
-    playlistId: "PLDisKgcnAC4S3dD_3sD_6aZ3xW6v5Z8mJ",
+    playlistId: "PLwxNMb28XmpeypJMHfNbJ4RAFkRtmAN3P",
   },
   lonely: {
-    playlistId: "PL6NdkXsTSx62VbYlqA4uRz0g2ZqWjY4A1",
+    playlistId: "PLwxNMb28XmpcpxBm1RoGRx4mVKNRIrKkG",
   },
   "late-night": {
-    playlistId: "PLOzDu-MXXL3gR3k4Y0Y2z6CgQp9_9t1a8",
+    playlistId: "PLwxNMb28XmpeypJMHfNbJ4RAFkRtmAN3P",
   },
 };

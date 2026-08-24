@@ -13,11 +13,11 @@ export function YouTubePlayer({
     <div
       style={{
         position: "fixed",
-        bottom: 0,
-        right: 0,
-        width: "200px",
-        height: "120px",
-        opacity: 0.001,
+        bottom: "0px",
+        right: "0px",
+        width: "320px",
+        height: "200px",
+        opacity: 0.02,
         pointerEvents: "none",
         zIndex: -50,
         overflow: "hidden",

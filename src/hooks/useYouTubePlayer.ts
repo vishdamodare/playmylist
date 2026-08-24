@@ -127,9 +127,21 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
       } else {
         // Load native YouTube playlist in full without limitations
         if (autoplay && player.loadPlaylist) {
-          player.loadPlaylist({ list: id, listType: "playlist", index: 0, startSeconds: 0 });
+          try {
+            player.loadPlaylist({ list: id, listType: "playlist", index: 0, startSeconds: 0 });
+          } catch {
+            try {
+              player.loadPlaylist(id, 0, 0);
+            } catch {}
+          }
         } else if (player.cuePlaylist) {
-          player.cuePlaylist({ list: id, listType: "playlist", index: 0, startSeconds: 0 });
+          try {
+            player.cuePlaylist({ list: id, listType: "playlist", index: 0, startSeconds: 0 });
+          } catch {
+            try {
+              player.cuePlaylist(id, 0, 0);
+            } catch {}
+          }
         }
       }
 
