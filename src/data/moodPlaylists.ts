@@ -8,6 +8,7 @@ export const moodPlaylists: Record<string, MoodPlaylistConfig> = {
       "TQqBjSAK52s",
       "KtlgYxa6BMU",
       "DdI598gKkKw",
+      "M-Vus7kqy1o",
       "SlbfAYvA_gI",
       "uziIDxPrjJc",
       "6ksOgOnX8q4",
@@ -23,16 +24,15 @@ export const moodPlaylists: Record<string, MoodPlaylistConfig> = {
   "the-weeknd": {
     playlistId: [
       "DgBM12cGM-Q",
+      "a40tAP5MC6M",
+      "KMZYqDKsKIc",
     ],
   },
   "The-Weekend": {
     playlistId: [
       "DgBM12cGM-Q",
-    ],
-  },
-  heartbroken: {
-    playlistId: [
-      "DgBM12cGM-Q",
+      "a40tAP5MC6M",
+      "KMZYqDKsKIc",
     ],
   },
   "one-sided": {
@@ -76,16 +76,24 @@ export const moodPlaylists: Record<string, MoodPlaylistConfig> = {
   },
   lonely: {
     playlistId: [
-      "jfKfPfyJRdk",
-      "5qap5aO4i9A",
-      "kocA_1m9C0Y",
+      "2CgESv5CYUw",
+      "82vn6VQdGwE",
+      "P9L_ZWVPX4g",
+      "BLFGsxijRHg",
+      "j44dcyPq0M8",
+      "7pG5vQpQP5c",
     ],
   },
   "late-night": {
     playlistId: [
-      "5qap5aO4i9A",
-      "jfKfPfyJRdk",
-      "Ha4fSclVanI",
+      "c-8abSPAPOU",
+      "Kf5pXDhx5Vc",
+      "MHCsrKA9gh8",
+      "ViKbB7vbK7Q",
+      "4PgOJwUCdIc",
+      "wPY6dOC-MDA",
+      "nujn6wbr-e8",
+      "wmLGG5DYDWQ",
     ],
   },
 };
