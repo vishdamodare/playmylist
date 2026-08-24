@@ -275,6 +275,9 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
               videoId: id,
               startSeconds: 0,
             });
+            setTimeout(() => {
+              try { player.playVideo?.(); } catch {}
+            }, 50);
           } else if (player.cueVideoById) {
             player.cueVideoById({
               videoId: id,
@@ -289,6 +292,9 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
               index: 0,
               startSeconds: 0,
             });
+            setTimeout(() => {
+              try { player.playVideo?.(); } catch {}
+            }, 50);
           } else if (player.cuePlaylist) {
             player.cuePlaylist({
               list: id,

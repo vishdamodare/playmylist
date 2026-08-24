@@ -54,6 +54,20 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
     };
   }
 
+  // Check YouTube single video / music watch link (watch?v=...)
+  if (trimmed.includes("watch?v=") || trimmed.includes("watch/") || trimmed.includes("youtu.be/")) {
+    const vMatch =
+      trimmed.match(/[?&]v=([0-9A-Za-z_-]{11})/) ||
+      trimmed.match(/youtu\.be\/([0-9A-Za-z_-]{11})/);
+    if (vMatch) {
+      return {
+        provider: "youtube",
+        type: "video",
+        id: vMatch[1],
+      };
+    }
+  }
+
   // Check YouTube playlist link (?list=...)
   if (trimmed.includes("list=")) {
     const listMatch = trimmed.match(/[?&]list=([a-zA-Z0-9_-]+)/);
@@ -62,19 +76,6 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
         provider: "youtube",
         type: "playlist",
         id: listMatch[1],
-      };
-    }
-  }
-
-  // Check YouTube single video link (watch?v=... or youtu.be/...)
-  if (trimmed.includes("watch?v=") || trimmed.includes("youtu.be/")) {
-    const vMatch =
-      trimmed.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:[&?]|$)/);
-    if (vMatch) {
-      return {
-        provider: "youtube",
-        type: "video",
-        id: vMatch[1],
       };
     }
   }
