@@ -11,11 +11,12 @@ import {
   Mic,
   CloudRain,
 } from "lucide-react";
-import { Mood, WallItem } from "@/types/mood";
+import { Mood, WallItem, Story } from "@/types/mood";
 import { PlayerState, MusicProvider } from "@/types/player";
 import { MusicPlayer } from "@/components/player/MusicPlayer";
 import { MoodFx } from "@/components/experience/MoodFx";
 import { PageRain } from "@/components/experience/PageRain";
+import { storage } from "@/lib/storage";
 
 function hexToRgbTriplet(hex: string): string {
   const h = hex.replace("#", "");
@@ -67,14 +68,33 @@ export function MoodExperience({
   const [savedFlash, setSavedFlash] = useState(false);
   const [recording, setRecording] = useState(false);
   const [wallPosts, setWallPosts] = useState<WallItem[]>(mood.wall || []);
+  const [communityStories, setCommunityStories] = useState<Story[]>([]);
   const [videoError, setVideoError] = useState(false);
 
-  // Update state when mood changes
+  // Load persistent community stories when mood changes
   useEffect(() => {
+    let cancelled = false;
     setWallPosts(mood.wall || []);
     setDraft("");
     setTab("write");
     setVideoError(false);
+
+    (async () => {
+      try {
+        const stored = await storage.get(`community_stories:${mood.slug}`, true);
+        if (!cancelled && stored?.value) {
+          setCommunityStories(JSON.parse(stored.value));
+        } else if (!cancelled) {
+          setCommunityStories([]);
+        }
+      } catch {
+        if (!cancelled) setCommunityStories([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [mood.slug, mood.wall]);
 
   const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
@@ -85,11 +105,43 @@ export function MoodExperience({
     setTimeout(() => setSavedFlash(false), 1800);
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!draft.trim()) return;
-    setWallPosts((posts) => [{ text: draft.trim(), author: "You" }, ...posts]);
+    const content = draft.trim();
+
+    // 1. Create new story
+    const newStory: Story = {
+      id: `story-${Date.now()}`,
+      title: "Community Reflection",
+      author: "You (Just now)",
+      tags: ["reflection", mood.label.toLowerCase()],
+      content,
+      likes: 1,
+    };
+
+    const updatedStories = [newStory, ...communityStories].slice(0, 30);
+    setCommunityStories(updatedStories);
+    setStoryIdx(0); // Immediately switch the story card to show this new story!
+
+    // 2. Also update story wall list
+    setWallPosts((posts) => [{ text: content, author: "You" }, ...posts]);
+
+    // 3. Clear draft and notify user
     setDraft("");
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 2200);
     setTab("wall");
+
+    // 4. Persist to storage
+    try {
+      await storage.set(
+        `community_stories:${mood.slug}`,
+        JSON.stringify(updatedStories),
+        true
+      );
+    } catch {
+      // Ignore
+    }
   };
 
   const toggleRecord = () => {
@@ -98,12 +150,13 @@ export function MoodExperience({
     setTimeout(() => setRecording(false), 2400);
   };
 
-  const stories = mood.stories;
-  const story = stories[storyIdx] || stories[0];
+  // Combine user posted stories with default mood stories
+  const allStories = [...communityStories, ...mood.stories];
+  const story = allStories[storyIdx] || allStories[0] || mood.stories[0];
   const prevStory = () =>
-    setStoryIdx((i) => (i - 1 + stories.length) % stories.length);
+    setStoryIdx((i) => (i - 1 + allStories.length) % allStories.length);
   const nextStory = () =>
-    setStoryIdx((i) => (i + 1) % stories.length);
+    setStoryIdx((i) => (i + 1) % allStories.length);
 
   return (
     <div className="pml-mood pml-mood-enter" style={{ background: bg }}>
@@ -311,7 +364,7 @@ export function MoodExperience({
                 <ArrowLeft size={13} /> Previous story
               </button>
               <span className="pml-storynav-count pml-mono">
-                {storyIdx + 1} / {stories.length}
+                {storyIdx + 1} / {allStories.length}
               </span>
               <button
                 className="pml-storynav-btn"
