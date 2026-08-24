@@ -5,11 +5,14 @@ import {
   ArrowLeft,
   ArrowRight,
   Pencil,
+  Trash2,
+  X,
   MessageSquare,
   Lock,
   Send,
   Mic,
   CloudRain,
+  Heart,
 } from "lucide-react";
 import { Mood, WallItem, Story } from "@/types/mood";
 import { PlayerState, MusicProvider } from "@/types/player";
@@ -20,9 +23,8 @@ import { storage } from "@/lib/storage";
 
 function hexToRgbTriplet(hex: string): string {
   const h = hex.replace("#", "");
-  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
-  const n = parseInt(full, 16);
-  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+  const v = parseInt(h, 16);
+  return `${(v >> 16) & 255}, ${(v >> 8) & 255}, ${v & 255}`;
 }
 
 interface MoodExperienceProps {
@@ -66,6 +68,7 @@ export function MoodExperience({
   const [tab, setTab] = useState<"write" | "wall">("write");
   const [draftTitle, setDraftTitle] = useState("");
   const [draft, setDraft] = useState("");
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [recording, setRecording] = useState(false);
   const [wallPosts, setWallPosts] = useState<WallItem[]>(mood.wall || []);
@@ -78,6 +81,7 @@ export function MoodExperience({
     setWallPosts(mood.wall || []);
     setDraftTitle("");
     setDraft("");
+    setEditingStoryId(null);
     setTab("write");
     setVideoError(false);
 
@@ -112,6 +116,37 @@ export function MoodExperience({
     const content = draft.trim();
     const title = draftTitle.trim() || "Community Reflection";
 
+    if (editingStoryId) {
+      // Update existing story
+      const updated = communityStories.map((s) =>
+        s.id === editingStoryId
+          ? {
+              ...s,
+              title,
+              content,
+            }
+          : s
+      );
+      setCommunityStories(updated);
+      setEditingStoryId(null);
+      setDraftTitle("");
+      setDraft("");
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2200);
+      setTab("wall");
+
+      try {
+        await storage.set(
+          `community_stories:${mood.slug}`,
+          JSON.stringify(updated),
+          true
+        );
+      } catch {
+        // Ignore
+      }
+      return;
+    }
+
     // 1. Create new story with custom title
     const newStory: Story = {
       id: `story-${Date.now()}`,
@@ -127,7 +162,10 @@ export function MoodExperience({
     setStoryIdx(0); // Immediately switch the story card to show this new story!
 
     // 2. Also update story wall list
-    setWallPosts((posts) => [{ text: `${title ? `[${title}] ` : ""}${content}`, author: "You" }, ...posts]);
+    setWallPosts((posts) => [
+      { text: `${title ? `[${title}] ` : ""}${content}`, author: "You" },
+      ...posts,
+    ]);
 
     // 3. Clear draft and notify user
     setDraftTitle("");
@@ -148,6 +186,40 @@ export function MoodExperience({
     }
   };
 
+  const handleStartEdit = (targetStory: Story) => {
+    setDraftTitle(targetStory.title || "");
+    setDraft(targetStory.content);
+    setEditingStoryId(targetStory.id || null);
+    setTab("write");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingStoryId(null);
+    setDraftTitle("");
+    setDraft("");
+  };
+
+  const handleDeleteStory = async (storyId: string) => {
+    const updated = communityStories.filter((s) => s.id !== storyId);
+    setCommunityStories(updated);
+    if (editingStoryId === storyId) {
+      handleCancelEdit();
+    }
+    if (storyIdx >= updated.length + mood.stories.length) {
+      setStoryIdx(Math.max(0, updated.length + mood.stories.length - 1));
+    }
+
+    try {
+      await storage.set(
+        `community_stories:${mood.slug}`,
+        JSON.stringify(updated),
+        true
+      );
+    } catch {
+      // Ignore
+    }
+  };
+
   const toggleRecord = () => {
     if (recording) return;
     setRecording(true);
@@ -157,6 +229,8 @@ export function MoodExperience({
   // Combine user posted stories with default mood stories
   const allStories = [...communityStories, ...mood.stories];
   const story = allStories[storyIdx] || allStories[0] || mood.stories[0];
+  const isUserStory = story.id?.startsWith("story-") || story.author?.startsWith("You");
+
   const prevStory = () =>
     setStoryIdx((i) => (i - 1 + allStories.length) % allStories.length);
   const nextStory = () =>
@@ -182,8 +256,7 @@ export function MoodExperience({
         />
       </div>
 
-      {/* Page-wide rain + thunder — covers the whole screen, sits below
-          the story shield and player so those two stay dry/legible. */}
+      {/* Page-wide rain + thunder */}
       {rainMode && <PageRain videoSrc={mood.rainVideoSrc} />}
       {rainMode && <div key={flashKey} className="pml-page-thunder-flash" aria-hidden="true" />}
 
@@ -267,12 +340,25 @@ export function MoodExperience({
                 className={`pml-notecard-tab ${tab === "wall" ? "active" : ""}`}
                 onClick={() => setTab("wall")}
               >
-                <MessageSquare size={13} /> Story Wall ({wallPosts.length})
+                <MessageSquare size={13} /> Story Wall ({wallPosts.length + communityStories.length})
               </button>
             </div>
 
             {tab === "write" ? (
               <>
+                {editingStoryId && (
+                  <div className="pml-notecard-edit-banner">
+                    <span>Editing reflection</span>
+                    <button
+                      className="pml-notecard-edit-cancel"
+                      onClick={handleCancelEdit}
+                      title="Cancel Edit"
+                    >
+                      <X size={12} /> Cancel
+                    </button>
+                  </div>
+                )}
+
                 <input
                   type="text"
                   className="pml-notecard-title-input"
@@ -307,11 +393,11 @@ export function MoodExperience({
                       onClick={handlePost}
                       disabled={!draft.trim()}
                     >
-                      Post it <Send size={13} />
+                      {editingStoryId ? "Update Story" : "Post it"} <Send size={13} />
                     </button>
                   </div>
                   <p className="pml-notecard-hint">
-                    Publishing places your reflection on the Story Wall.
+                    Publishing places your reflection on the Story Wall & Story card.
                   </p>
                 </div>
                 <div className="pml-notecard-voice">
@@ -334,17 +420,44 @@ export function MoodExperience({
               </>
             ) : (
               <div className="pml-wall-list">
-                {wallPosts.length === 0 ? (
+                {/* Community Stories editable list */}
+                {communityStories.map((st) => (
+                  <div className="pml-wall-item pml-wall-item-user" key={st.id}>
+                    <div className="pml-wall-header">
+                      <strong className="pml-wall-title">{st.title}</strong>
+                      <div className="pml-wall-actions">
+                        <button
+                          className="pml-action-btn edit"
+                          onClick={() => handleStartEdit(st)}
+                          title="Edit story"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          className="pml-action-btn delete"
+                          onClick={() => handleDeleteStory(st.id || "")}
+                          title="Delete story"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="pml-wall-text">{st.content}</p>
+                    <span className="pml-wall-meta pml-mono">You (Just now)</span>
+                  </div>
+                ))}
+
+                {wallPosts.map((post, i) => (
+                  <div className="pml-wall-item" key={`wall-${i}`}>
+                    <p className="pml-wall-text">{post.text}</p>
+                    <span className="pml-wall-meta pml-mono">{post.author}</span>
+                  </div>
+                ))}
+
+                {communityStories.length === 0 && wallPosts.length === 0 && (
                   <p className="pml-wall-empty pml-mono">
                     NO REFLECTIONS YET — BE THE FIRST
                   </p>
-                ) : (
-                  wallPosts.map((post, i) => (
-                    <div className="pml-wall-item" key={i}>
-                      <p className="pml-wall-text">{post.text}</p>
-                      <span className="pml-wall-meta pml-mono">{post.author}</span>
-                    </div>
-                  ))
                 )}
               </div>
             )}
@@ -355,14 +468,39 @@ export function MoodExperience({
           <div className={`pml-story-shield ${rainMode ? "is-raining" : ""}`}>
             <p className="pml-quote">&ldquo;{mood.quote}&rdquo;</p>
 
-            <div key={storyIdx} className="pml-story-block">
-              <div className="pml-tags">
-                {story.tags.map((tag) => (
-                  <span className="pml-tag" key={tag}>
-                    {tag}
-                  </span>
-                ))}
+            <div key={story.id || storyIdx} className="pml-story-block">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="pml-tags">
+                  {story.tags.map((tag) => (
+                    <span className="pml-tag" key={tag}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Edit & Delete buttons if user-authored story */}
+                {isUserStory && story.id && (
+                  <div className="pml-story-user-actions">
+                    <button
+                      className="pml-story-action-btn edit"
+                      onClick={() => handleStartEdit(story)}
+                      title="Edit this story"
+                    >
+                      <Pencil size={13} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      className="pml-story-action-btn delete"
+                      onClick={() => handleDeleteStory(story.id || "")}
+                      title="Delete this story"
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                )}
               </div>
+
               <h2 className="pml-story-title">{story.title}</h2>
               <p className="pml-story-content">{story.content}</p>
               <p className="pml-story-author">{story.author}</p>

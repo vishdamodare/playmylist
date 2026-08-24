@@ -913,6 +913,117 @@ canvas#wave {
   padding: 14px 16px;
 }
 
+.pml-wall-item-user {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.pml-wall-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pml-wall-title {
+  font-size: 12.5px;
+  color: #FFF;
+  font-weight: 500;
+}
+
+.pml-wall-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pml-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pml-action-btn.edit:hover {
+  background: rgba(232, 169, 174, 0.25);
+  color: #FFF;
+  border-color: rgba(232, 169, 174, 0.5);
+}
+
+.pml-action-btn.delete:hover {
+  background: rgba(244, 63, 94, 0.25);
+  color: #FB7185;
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
+.pml-notecard-edit-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(232, 169, 174, 0.15);
+  border: 1px solid rgba(232, 169, 174, 0.35);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: #F3EEE6;
+}
+
+.pml-notecard-edit-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #E8A9AE;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.pml-notecard-edit-cancel:hover {
+  color: #FFF;
+}
+
+.pml-story-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pml-story-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pml-story-action-btn.edit:hover {
+  background: rgba(232, 169, 174, 0.25);
+  color: #FFF;
+  border-color: rgba(232, 169, 174, 0.5);
+}
+
+.pml-story-action-btn.delete:hover {
+  background: rgba(244, 63, 94, 0.25);
+  color: #FB7185;
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
 .pml-wall-text {
   font-size: 13.5px;
   line-height: 1.6;
