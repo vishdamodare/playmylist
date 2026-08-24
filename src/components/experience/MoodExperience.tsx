@@ -67,12 +67,14 @@ export function MoodExperience({
   const [savedFlash, setSavedFlash] = useState(false);
   const [recording, setRecording] = useState(false);
   const [wallPosts, setWallPosts] = useState<WallItem[]>(mood.wall || []);
+  const [videoError, setVideoError] = useState(false);
 
-  // Update wallPosts when mood changes
+  // Update state when mood changes
   useEffect(() => {
     setWallPosts(mood.wall || []);
     setDraft("");
     setTab("write");
+    setVideoError(false);
   }, [mood.slug, mood.wall]);
 
   const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
@@ -140,7 +142,7 @@ export function MoodExperience({
               } as React.CSSProperties
             }
           >
-            {mood.videoSrc ? (
+            {mood.videoSrc && !videoError ? (
               <video
                 key={mood.videoSrc}
                 className="pml-visual-video"
@@ -149,6 +151,7 @@ export function MoodExperience({
                 loop
                 muted
                 playsInline
+                onError={() => setVideoError(true)}
               />
             ) : (
               <div className="pml-visual-art">
