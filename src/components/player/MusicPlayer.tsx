@@ -116,8 +116,15 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
         <button
           aria-label={playerState.isPlaying ? "Pause" : "Play"}
           className="pml-player-play hover:scale-105 transition-transform"
-          onClick={provider.togglePlay}
-          disabled={!playerState.isReady && !playerState.error}
+          onClick={() => {
+            if (!playerState.isPlaying && playlistConfig?.playlistId) {
+              const parsed = parsePlaylistInput(playlistConfig.playlistId);
+              if (parsed.provider === "youtube" && parsed.id) {
+                provider.loadPlaylist(parsed.id, parsed.type);
+              }
+            }
+            provider.togglePlay();
+          }}
         >
           {playerState.isBuffering ? (
             <Loader2 size={14} className="animate-spin text-black" />
