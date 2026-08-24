@@ -9,7 +9,7 @@ interface HomeProps {
 
 const MOODS_CONFIG = [
   { slug: "in-love", label: "I'm in Love", color: "#e8897f", word: "heart" },
-  { slug: "heartbroken", label: "Heartbroken", color: "#c97b4a", word: "chest" },
+  { slug: "the-weeknd", label: "The Weeknd", color: "#c97b4a", word: "night" },
   { slug: "one-sided", label: "One Sided", color: "#7b8fe0", word: "mind" },
   { slug: "long-distance", label: "Long Distance", color: "#5fb0c9", word: "voice" },
   { slug: "lonely", label: "Lonely", color: "#6b6fd9", word: "silence" },

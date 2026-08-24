@@ -25,7 +25,7 @@ interface MoodFxProps {
 export function MoodFx({ mood }: MoodFxProps) {
   const t = mood.theme;
 
-  if (mood.slug === "heartbroken") {
+  if (mood.slug === "the-weeknd" || mood.slug === "heartbroken") {
     const drops = particles(26, 1);
     return (
       <div className="pml-visual-fx" aria-hidden="true">
