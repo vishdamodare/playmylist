@@ -743,6 +743,32 @@ canvas#wave {
   color: #F3EEE6;
 }
 
+.pml-notecard-title-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  outline: none;
+  color: #F3EEE6;
+  font-family: 'Fraunces', 'Cormorant Garamond', serif;
+  font-weight: 500;
+  font-size: 1.05rem;
+  padding: 4px 0 10px;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+  transition: border-color 0.2s ease;
+}
+
+.pml-notecard-title-input:focus {
+  border-bottom-color: rgba(255, 255, 255, 0.45);
+}
+
+.pml-notecard-title-input::placeholder {
+  color: rgba(243, 238, 230, 0.4);
+  font-style: italic;
+  font-weight: 400;
+}
+
 .pml-notecard-textarea {
   flex: 1;
   width: 100%;

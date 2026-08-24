@@ -64,6 +64,7 @@ export function MoodExperience({
   }, [rainMode]);
 
   const [tab, setTab] = useState<"write" | "wall">("write");
+  const [draftTitle, setDraftTitle] = useState("");
   const [draft, setDraft] = useState("");
   const [savedFlash, setSavedFlash] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -75,6 +76,7 @@ export function MoodExperience({
   useEffect(() => {
     let cancelled = false;
     setWallPosts(mood.wall || []);
+    setDraftTitle("");
     setDraft("");
     setTab("write");
     setVideoError(false);
@@ -108,11 +110,12 @@ export function MoodExperience({
   const handlePost = async () => {
     if (!draft.trim()) return;
     const content = draft.trim();
+    const title = draftTitle.trim() || "Community Reflection";
 
-    // 1. Create new story
+    // 1. Create new story with custom title
     const newStory: Story = {
       id: `story-${Date.now()}`,
-      title: "Community Reflection",
+      title,
       author: "You (Just now)",
       tags: ["reflection", mood.label.toLowerCase()],
       content,
@@ -124,9 +127,10 @@ export function MoodExperience({
     setStoryIdx(0); // Immediately switch the story card to show this new story!
 
     // 2. Also update story wall list
-    setWallPosts((posts) => [{ text: content, author: "You" }, ...posts]);
+    setWallPosts((posts) => [{ text: `${title ? `[${title}] ` : ""}${content}`, author: "You" }, ...posts]);
 
     // 3. Clear draft and notify user
+    setDraftTitle("");
     setDraft("");
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 2200);
@@ -269,9 +273,18 @@ export function MoodExperience({
 
             {tab === "write" ? (
               <>
+                <input
+                  type="text"
+                  className="pml-notecard-title-input"
+                  placeholder="Story Title (optional)"
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  maxLength={60}
+                  aria-label="Story Title"
+                />
                 <textarea
                   className="pml-notecard-textarea"
-                  placeholder="What does this feeling remind you of?"
+                  placeholder="What does this feeling remind you of? Write your story..."
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   aria-label={`Reflection for ${mood.label}`}
