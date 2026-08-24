@@ -1428,20 +1428,26 @@ canvas#wave {
 /* ── PLAYER ── */
 .pml-player {
   position: fixed;
-  left: 50%;
+  left: 5vw;
+  right: 5vw;
   bottom: 22px;
-  transform: translateX(-50%);
-  z-index: 10;
-  width: min(560px, 90vw);
-  background: rgba(15,13,20,0.72);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 999px;
-  padding: 10px 20px 10px 10px;
+  z-index: 30;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(13, 11, 16, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.55);
+}
+
+.pml-player-spotify {
+  border-radius: 16px;
+  padding: 6px 12px;
+  height: 94px;
 }
 
 .pml-player-art {

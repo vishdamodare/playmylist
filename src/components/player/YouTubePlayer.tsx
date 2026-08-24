@@ -11,8 +11,9 @@ export function YouTubePlayer({
 }: YouTubePlayerProps) {
   return (
     <div
-      className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none overflow-hidden"
+      className="fixed bottom-0 right-0 w-[320px] h-[200px] opacity-[0.005] pointer-events-none overflow-hidden -z-50"
       aria-hidden="true"
+      style={{ clipPath: "inset(100%)" }}
     >
       <div id={containerId} className="w-full h-full" />
     </div>
