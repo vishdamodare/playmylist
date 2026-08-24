@@ -140,6 +140,17 @@ export function MoodExperience({
               } as React.CSSProperties
             }
           >
+            {mood.videoSrc ? (
+              <video
+                className="pml-visual-video"
+                src={mood.videoSrc}
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : null}
+
             <div className="pml-visual-art">
               <div
                 className="pml-visual-blur1"

@@ -15,6 +15,7 @@ export const MOODS: Mood[] = [
     },
     quote: "Some feelings don't need a reason. They just need a song.",
     visualLabel: "GOLDEN HOUR · CITY WALK · 6:48 PM",
+    videoSrc: "/videos/moods/in-love.mp4",
     stories: [
       {
         id: "in-love-1",
@@ -72,6 +73,7 @@ export const MOODS: Mood[] = [
     },
     quote: "Some songs don't heal you. They just understand you.",
     visualLabel: "RAIN · WINDOW · 11:42 PM",
+    videoSrc: "/videos/moods/heartbroken.mp4",
     stories: [
       {
         id: "heartbroken-1",
@@ -129,6 +131,7 @@ export const MOODS: Mood[] = [
     },
     quote: "I loved loud enough for two people. Only one of us noticed.",
     visualLabel: "EMPTY CHAIR · CAFÉ WINDOW · 4:10 PM",
+    videoSrc: "/videos/moods/one-sided.mp4",
     stories: [
       {
         id: "one-sided-1",
@@ -186,6 +189,7 @@ export const MOODS: Mood[] = [
     },
     quote: "Two time zones, one heartbeat, running slightly out of sync.",
     visualLabel: "NIGHT TRAIN · CITY LIGHTS · 1:15 AM",
+    videoSrc: "/videos/moods/long-distance.mp4",
     stories: [
       {
         id: "long-distance-1",
@@ -243,6 +247,7 @@ export const MOODS: Mood[] = [
     },
     quote: "A full room can still feel like an empty one.",
     visualLabel: "EMPTY ROOM · STREETLIGHT · 10:03 PM",
+    videoSrc: "/videos/moods/lonely.mp4",
     stories: [
       {
         id: "lonely-1",
@@ -300,6 +305,7 @@ export const MOODS: Mood[] = [
     },
     quote: "Every thought sounds louder after midnight.",
     visualLabel: "CEILING FAN · PHONE GLOW · 2:37 AM",
+    videoSrc: "/videos/moods/late-night.mp4",
     stories: [
       {
         id: "late-night-1",

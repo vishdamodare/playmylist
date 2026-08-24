@@ -35,9 +35,10 @@ export interface Mood {
   quote: string;
   visualLabel: string;
   journalPrompt?: string;
+  videoSrc?: string;
+  rainVideoSrc?: string;
   stories: Story[];
   playlistName: string;
   tracks?: TrackPlaceholder[];
   wall?: WallItem[];
-  rainVideoSrc?: string;
 }
