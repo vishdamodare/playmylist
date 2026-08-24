@@ -111,14 +111,14 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
         <button
           aria-label="Previous track"
           onClick={provider.previous}
-          className="hover:opacity-80 transition-opacity"
+          className="hover:opacity-100 transition-opacity"
         >
-          <SkipBack size={15} />
+          <SkipBack size={16} strokeWidth={2.2} />
         </button>
 
         <button
           aria-label={playerState.isPlaying ? "Pause" : "Play"}
-          className="pml-player-play hover:scale-105 transition-transform"
+          className="pml-player-play"
           onClick={() => {
             if (!playerState.isPlaying && playlistConfig?.playlistId) {
               provider.loadPlaylist(playlistConfig.playlistId);
@@ -127,20 +127,20 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
           }}
         >
           {playerState.isBuffering ? (
-            <Loader2 size={14} className="animate-spin text-black" />
+            <Loader2 size={15} className="animate-spin text-[#121016]" />
           ) : playerState.isPlaying ? (
-            <Pause size={14} />
+            <Pause size={15} strokeWidth={2.4} className="text-[#121016]" />
           ) : (
-            <Play size={14} style={{ marginLeft: 1 }} />
+            <Play size={15} strokeWidth={2.4} className="text-[#121016]" style={{ marginLeft: 2 }} />
           )}
         </button>
 
         <button
           aria-label="Next track"
           onClick={provider.next}
-          className="hover:opacity-80 transition-opacity"
+          className="hover:opacity-100 transition-opacity"
         >
-          <SkipForward size={15} />
+          <SkipForward size={16} strokeWidth={2.2} />
         </button>
       </div>
 
@@ -189,9 +189,9 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
           className="hover:text-white transition-colors"
         >
           {isMuted || playerState.volume === 0 ? (
-            <VolumeX size={14} />
+            <VolumeX size={16} />
           ) : (
-            <Volume2 size={14} />
+            <Volume2 size={16} />
           )}
         </button>
 
