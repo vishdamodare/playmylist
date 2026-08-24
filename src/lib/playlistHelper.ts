@@ -15,8 +15,6 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
   }
 
   const trimmed = input.trim();
-
-  // Extract base before any query parameters for check
   const base = trimmed.split("?")[0].split("&")[0].trim();
 
   // Check Spotify URL or URI or 22-char ID
@@ -41,7 +39,7 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
   }
 
   if (
-    (/^[a-zA-Z0-9]{22}$/.test(base) && !base.startsWith("PL")) ||
+    (/^[a-zA-Z0-9]{22}$/.test(base) && !base.startsWith("PL") && !base.startsWith("RD")) ||
     trimmed.includes("si=") ||
     trimmed.includes("flow_ctx=")
   ) {
@@ -54,7 +52,28 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
     };
   }
 
-  // Check YouTube single video / music watch link (watch?v=...)
+  // 1. Check YouTube playlist parameter (?list=... or &list=...)
+  if (trimmed.includes("list=")) {
+    const listMatch = trimmed.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    if (listMatch && listMatch[1]) {
+      return {
+        provider: "youtube",
+        type: "playlist",
+        id: listMatch[1],
+      };
+    }
+  }
+
+  // 2. If it starts with standard YouTube playlist prefix PL, RD, UU, OLAK5uy_, FL
+  if (/^(PL|RD|UU|OLAK5uy_|FL)[a-zA-Z0-9_-]+$/.test(base)) {
+    return {
+      provider: "youtube",
+      type: "playlist",
+      id: base,
+    };
+  }
+
+  // 3. Check YouTube single video / music watch link (watch?v=... or youtu.be/...)
   if (trimmed.includes("watch?v=") || trimmed.includes("watch/") || trimmed.includes("youtu.be/")) {
     const vMatch =
       trimmed.match(/[?&]v=([0-9A-Za-z_-]{11})/) ||
@@ -68,28 +87,7 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
     }
   }
 
-  // Check YouTube playlist link (?list=...)
-  if (trimmed.includes("list=")) {
-    const listMatch = trimmed.match(/[?&]list=([a-zA-Z0-9_-]+)/);
-    if (listMatch) {
-      return {
-        provider: "youtube",
-        type: "playlist",
-        id: listMatch[1],
-      };
-    }
-  }
-
-  // If it starts with standard YouTube playlist prefix PL, RD, UU, OLAK5uy_, FL
-  if (/^(PL|RD|UU|OLAK5uy_|FL)[a-zA-Z0-9_-]+$/.test(base)) {
-    return {
-      provider: "youtube",
-      type: "playlist",
-      id: base,
-    };
-  }
-
-  // If it's an 11-char YouTube video ID
+  // 4. If it's an 11-char YouTube video ID
   if (/^[a-zA-Z0-9_-]{11}$/.test(base)) {
     return {
       provider: "youtube",
@@ -100,7 +98,7 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
 
   // Fallback
   return {
-    provider: base.startsWith("PL") ? "youtube" : "spotify",
+    provider: base.startsWith("PL") || base.startsWith("RD") ? "youtube" : "spotify",
     type: "playlist",
     id: base,
     embedUrl: `https://open.spotify.com/embed/playlist/${base}?utm_source=generator&theme=0`,

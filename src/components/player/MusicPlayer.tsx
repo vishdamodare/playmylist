@@ -27,7 +27,7 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
   const progressTrackRef = useRef<HTMLDivElement>(null);
 
   const playlistConfig = moodPlaylists[mood.slug];
-  const activeInput = playlistConfig?.playlistId || playlistConfig?.tracks?.[0] || "";
+  const activeInput = playlistConfig?.playlistId || "";
   const parsedPlaylist = parsePlaylistInput(activeInput);
   const isSpotify = parsedPlaylist.provider === "spotify" && Boolean(parsedPlaylist.embedUrl);
 
@@ -118,15 +118,8 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
           aria-label={playerState.isPlaying ? "Pause" : "Play"}
           className="pml-player-play hover:scale-105 transition-transform"
           onClick={() => {
-            if (!playerState.isPlaying && playlistConfig) {
-              if (playlistConfig.tracks && playlistConfig.tracks.length > 0) {
-                provider.loadPlaylist(playlistConfig.tracks);
-              } else if (playlistConfig.playlistId) {
-                const parsed = parsePlaylistInput(playlistConfig.playlistId);
-                if (parsed.provider === "youtube" && parsed.id) {
-                  provider.loadPlaylist(parsed.id, parsed.type);
-                }
-              }
+            if (!playerState.isPlaying && playlistConfig?.playlistId) {
+              provider.loadPlaylist(playlistConfig.playlistId);
             }
             provider.togglePlay();
           }}

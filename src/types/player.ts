@@ -20,5 +20,5 @@ export interface MusicProvider {
   previous: () => void;
   seek: (seconds: number) => void;
   setVolume: (volume: number) => void;
-  loadPlaylist: (playlistInput: string | string[], type?: "playlist" | "video") => void;
+  loadPlaylist: (playlistInput: string, type?: "playlist" | "video") => void;
 }

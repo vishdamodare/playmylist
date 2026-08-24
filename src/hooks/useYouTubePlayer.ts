@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { PlayerState, MusicProvider } from "@/types/player";
-import { parsePlaylistInput, ParsedPlaylist } from "@/lib/playlistHelper";
+import { parsePlaylistInput } from "@/lib/playlistHelper";
 
 let isScriptLoading = false;
 let isScriptReady = false;
@@ -58,8 +58,6 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
   const playerRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const trackListRef = useRef<ParsedPlaylist[]>([]);
-  const currentTrackIndexRef = useRef<number>(0);
   const pendingMediaRef = useRef<{ id: string; type: "playlist" | "video"; autoplay: boolean } | null>(null);
 
   const startProgressPolling = useCallback(() => {
@@ -80,7 +78,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
           currentArtist: videoData.author || prev.currentArtist,
         }));
       } catch {
-        // Player might be re-initializing or destroyed
+        // Player might be updating
       }
     }, 250);
   }, []);
@@ -127,6 +125,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
           player.cueVideoById({ videoId: id, startSeconds: 0 });
         }
       } else {
+        // Load native YouTube playlist in full without limitations
         if (autoplay && player.loadPlaylist) {
           player.loadPlaylist({ list: id, listType: "playlist", index: 0, startSeconds: 0 });
         } else if (player.cuePlaylist) {
@@ -147,33 +146,22 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
   }, []);
 
   const next = useCallback(() => {
-    if (trackListRef.current.length > 1) {
-      currentTrackIndexRef.current = (currentTrackIndexRef.current + 1) % trackListRef.current.length;
-      const track = trackListRef.current[currentTrackIndexRef.current];
-      executeLoad(track.id, track.type, true);
-      return;
-    }
-
     if (!playerRef.current?.nextVideo) return;
     try {
       playerRef.current.nextVideo();
-    } catch {}
-  }, [executeLoad]);
+    } catch (err) {
+      console.error("Error moving to next video:", err);
+    }
+  }, []);
 
   const previous = useCallback(() => {
-    if (trackListRef.current.length > 1) {
-      currentTrackIndexRef.current =
-        (currentTrackIndexRef.current - 1 + trackListRef.current.length) % trackListRef.current.length;
-      const track = trackListRef.current[currentTrackIndexRef.current];
-      executeLoad(track.id, track.type, true);
-      return;
-    }
-
     if (!playerRef.current?.previousVideo) return;
     try {
       playerRef.current.previousVideo();
-    } catch {}
-  }, [executeLoad]);
+    } catch (err) {
+      console.error("Error moving to previous video:", err);
+    }
+  }, []);
 
   // Initialize YT Player
   useEffect(() => {
@@ -251,9 +239,8 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
                   isBuffering: true,
                 }));
               } else if (state === 0) {
-                // Auto play next song when track finishes!
-                stopProgressPolling();
-                next();
+                // When a song in a YouTube playlist ends, YouTube automatically loads and plays the next song
+                updateTrackInfo();
               } else if (state === -1) {
                 setPlayerState((prev) => ({
                   ...prev,
@@ -271,11 +258,18 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
               if (isCancelled) return;
               const code = event.data;
               let msg = "Playback encountered an issue.";
-              if (code === 2) msg = "Invalid video/playlist parameter.";
+              if (code === 2) msg = "Invalid playlist parameter.";
               else if (code === 5) msg = "HTML5 player error.";
-              else if (code === 100) msg = "Video or playlist not found.";
+              else if (code === 100) msg = "Playlist not found.";
               else if (code === 101 || code === 150)
-                msg = "Embedded playback restricted by artist.";
+                msg = "Playback restricted on this track. Skipping...";
+
+              // Auto skip restricted track in playlist
+              if (code === 101 || code === 150) {
+                try {
+                  playerRef.current?.nextVideo?.();
+                } catch {}
+              }
 
               setPlayerState((prev) => ({
                 ...prev,
@@ -298,42 +292,32 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
       isCancelled = true;
       stopProgressPolling();
     };
-  }, [containerId, executeLoad, next, startProgressPolling, stopProgressPolling, updateTrackInfo]);
+  }, [containerId, executeLoad, startProgressPolling, stopProgressPolling, updateTrackInfo]);
 
   const loadPlaylist = useCallback(
     (input: string | string[], defaultType: "playlist" | "video" = "playlist", autoplay: boolean = true) => {
-      let parsedList: ParsedPlaylist[] = [];
+      const rawId = Array.isArray(input) ? input[0] : input;
+      if (!rawId || rawId.startsWith("REPLACE_WITH_")) return;
 
-      if (Array.isArray(input)) {
-        parsedList = input
-          .map((item) => parsePlaylistInput(item))
-          .filter((p) => p.provider === "youtube" && p.id);
-      } else if (typeof input === "string" && input && !input.startsWith("REPLACE_WITH_")) {
-        const parsed = parsePlaylistInput(input);
-        if (parsed.provider === "youtube" && parsed.id) {
-          parsedList = [parsed];
-        }
-      }
+      const parsed = parsePlaylistInput(rawId);
+      if (parsed.provider !== "youtube" || !parsed.id) return;
 
-      trackListRef.current = parsedList;
-      currentTrackIndexRef.current = 0;
+      const playlistId = parsed.id;
+      const type = parsed.type || defaultType;
 
-      if (parsedList.length === 0) return;
-
-      const first = parsedList[0];
       setPlayerState((prev) => ({
         ...prev,
-        playlistId: first.id,
+        playlistId,
         currentTime: 0,
         error: null,
       }));
 
       if (!playerRef.current || !playerRef.current.getPlayerState) {
-        pendingMediaRef.current = { id: first.id, type: first.type, autoplay };
+        pendingMediaRef.current = { id: playlistId, type, autoplay };
         return;
       }
 
-      executeLoad(first.id, first.type, autoplay);
+      executeLoad(playlistId, type, autoplay);
     },
     [executeLoad]
   );

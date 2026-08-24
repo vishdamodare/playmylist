@@ -1,52 +1,24 @@
 export interface MoodPlaylistConfig {
-  playlistId?: string; // YouTube or Spotify single URL / Playlist URL
-  tracks?: string[];   // Array of YouTube track URLs for Next/Previous cycling
+  playlistId: string; // Complete YouTube Playlist ID (PL...) or full Playlist URL
 }
 
 export const moodPlaylists: Record<string, MoodPlaylistConfig> = {
   "in-love": {
-    tracks: [
-      "https://www.youtube.com/watch?v=fHI8X4893Ts", // Perfect
-      "https://www.youtube.com/watch?v=lp-EO5I60KA", // Thinking Out Loud
-      "https://www.youtube.com/watch?v=kJQP7kiw5Fk", // Romance
-      "https://www.youtube.com/watch?v=2Vv-BfVoq4g", // Acoustic
-    ],
-  },
-  "one-sided": {
-    tracks: [
-      "https://www.youtube.com/watch?v=Ha4fSclVanI", // Husn - Anuv Jain
-      "https://www.youtube.com/watch?v=cG4ME1stMS4", // Faasle - Aditya Rikhari
-      "https://www.youtube.com/watch?v=kocA_1m9C0Y", // Alag Aasmaan
-      "https://www.youtube.com/watch?v=fHI8X4893Ts", // Acoustic
-    ],
-  },
-  "long-distance": {
-    tracks: [
-      "https://www.youtube.com/watch?v=cG4ME1stMS4", // Faasle - Aditya Rikhari
-      "https://www.youtube.com/watch?v=Ha4fSclVanI", // Husn - Anuv Jain
-      "https://www.youtube.com/watch?v=5qap5aO4i9A", // Lofi Late Night
-      "https://www.youtube.com/watch?v=jfKfPfyJRdk", // Lofi Chill
-    ],
+    playlistId: "PL4fGSIFgk5kWzZ_7QdYy0u5F6o_xXw",
   },
   heartbroken: {
-    tracks: [
-      "https://www.youtube.com/watch?v=kocA_1m9C0Y",
-      "https://www.youtube.com/watch?v=Ha4fSclVanI",
-      "https://www.youtube.com/watch?v=cG4ME1stMS4",
-    ],
+    playlistId: "PL3-sRm8xAzY-w9GS19pPWFBEqptdWpY_s",
+  },
+  "one-sided": {
+    playlistId: "PLgzTt0k8mXzEk586ze4Bjvy132184n371",
+  },
+  "long-distance": {
+    playlistId: "PLDisKgcnAC4S3dD_3sD_6aZ3xW6v5Z8mJ",
   },
   lonely: {
-    tracks: [
-      "https://www.youtube.com/watch?v=jfKfPfyJRdk",
-      "https://www.youtube.com/watch?v=5qap5aO4i9A",
-      "https://www.youtube.com/watch?v=kocA_1m9C0Y",
-    ],
+    playlistId: "PL6NdkXsTSx62VbYlqA4uRz0g2ZqWjY4A1",
   },
   "late-night": {
-    tracks: [
-      "https://www.youtube.com/watch?v=5qap5aO4i9A",
-      "https://www.youtube.com/watch?v=jfKfPfyJRdk",
-      "https://www.youtube.com/watch?v=Ha4fSclVanI",
-    ],
+    playlistId: "PLOzDu-MXXL3gR3k4Y0Y2z6CgQp9_9t1a8",
   },
 };
