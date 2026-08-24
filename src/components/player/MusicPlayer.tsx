@@ -27,7 +27,8 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
   const progressTrackRef = useRef<HTMLDivElement>(null);
 
   const playlistConfig = moodPlaylists[mood.slug];
-  const parsedPlaylist = playlistConfig ? parsePlaylistInput(playlistConfig.playlistId) : { provider: "unknown" as const, id: "" };
+  const activeInput = playlistConfig?.playlistId || playlistConfig?.tracks?.[0] || "";
+  const parsedPlaylist = parsePlaylistInput(activeInput);
   const isSpotify = parsedPlaylist.provider === "spotify" && Boolean(parsedPlaylist.embedUrl);
 
   // If this mood is configured with a Spotify playlist, show the native Spotify Player bar!
@@ -117,10 +118,14 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
           aria-label={playerState.isPlaying ? "Pause" : "Play"}
           className="pml-player-play hover:scale-105 transition-transform"
           onClick={() => {
-            if (!playerState.isPlaying && playlistConfig?.playlistId) {
-              const parsed = parsePlaylistInput(playlistConfig.playlistId);
-              if (parsed.provider === "youtube" && parsed.id) {
-                provider.loadPlaylist(parsed.id, parsed.type);
+            if (!playerState.isPlaying && playlistConfig) {
+              if (playlistConfig.tracks && playlistConfig.tracks.length > 0) {
+                provider.loadPlaylist(playlistConfig.tracks);
+              } else if (playlistConfig.playlistId) {
+                const parsed = parsePlaylistInput(playlistConfig.playlistId);
+                if (parsed.provider === "youtube" && parsed.id) {
+                  provider.loadPlaylist(parsed.id, parsed.type);
+                }
               }
             }
             provider.togglePlay();

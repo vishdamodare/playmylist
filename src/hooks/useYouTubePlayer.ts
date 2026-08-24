@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { PlayerState, MusicProvider } from "@/types/player";
-
-
+import { parsePlaylistInput, ParsedPlaylist } from "@/lib/playlistHelper";
 
 let isScriptLoading = false;
 let isScriptReady = false;
@@ -59,6 +58,8 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
   const playerRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const trackListRef = useRef<ParsedPlaylist[]>([]);
+  const currentTrackIndexRef = useRef<number>(0);
   const pendingMediaRef = useRef<{ id: string; type: "playlist" | "video"; autoplay: boolean } | null>(null);
 
   const startProgressPolling = useCallback(() => {
@@ -145,6 +146,35 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
     }
   }, []);
 
+  const next = useCallback(() => {
+    if (trackListRef.current.length > 1) {
+      currentTrackIndexRef.current = (currentTrackIndexRef.current + 1) % trackListRef.current.length;
+      const track = trackListRef.current[currentTrackIndexRef.current];
+      executeLoad(track.id, track.type, true);
+      return;
+    }
+
+    if (!playerRef.current?.nextVideo) return;
+    try {
+      playerRef.current.nextVideo();
+    } catch {}
+  }, [executeLoad]);
+
+  const previous = useCallback(() => {
+    if (trackListRef.current.length > 1) {
+      currentTrackIndexRef.current =
+        (currentTrackIndexRef.current - 1 + trackListRef.current.length) % trackListRef.current.length;
+      const track = trackListRef.current[currentTrackIndexRef.current];
+      executeLoad(track.id, track.type, true);
+      return;
+    }
+
+    if (!playerRef.current?.previousVideo) return;
+    try {
+      playerRef.current.previousVideo();
+    } catch {}
+  }, [executeLoad]);
+
   // Initialize YT Player
   useEffect(() => {
     let isCancelled = false;
@@ -153,10 +183,9 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
       if (isCancelled) return;
       if (!window.YT || !window.YT.Player) return;
 
-      let container = document.getElementById(containerId);
+      const container = document.getElementById(containerId);
       if (!container) return;
 
-      // If player already exists and is valid, don't recreate
       if (playerRef.current && playerRef.current.getPlayerState) {
         setPlayerState((prev) => ({ ...prev, isReady: true }));
         return;
@@ -188,7 +217,6 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
                 error: null,
               }));
 
-              // Process pending media if any
               if (pendingMediaRef.current) {
                 const { id, type, autoplay } = pendingMediaRef.current;
                 pendingMediaRef.current = null;
@@ -222,14 +250,15 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
                   ...prev,
                   isBuffering: true,
                 }));
-              } else if (state === 0 || state === -1) {
+              } else if (state === 0) {
+                // Auto play next song when track finishes!
+                stopProgressPolling();
+                next();
+              } else if (state === -1) {
                 setPlayerState((prev) => ({
                   ...prev,
-                  isPlaying: false,
                   isBuffering: false,
                 }));
-                stopProgressPolling();
-                updateTrackInfo();
               } else if (state === 5) {
                 setPlayerState((prev) => ({
                   ...prev,
@@ -269,25 +298,42 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
       isCancelled = true;
       stopProgressPolling();
     };
-  }, [containerId, executeLoad, startProgressPolling, stopProgressPolling, updateTrackInfo]);
+  }, [containerId, executeLoad, next, startProgressPolling, stopProgressPolling, updateTrackInfo]);
 
   const loadPlaylist = useCallback(
-    (id: string, type: "playlist" | "video" = "playlist", autoplay: boolean = true) => {
+    (input: string | string[], defaultType: "playlist" | "video" = "playlist", autoplay: boolean = true) => {
+      let parsedList: ParsedPlaylist[] = [];
+
+      if (Array.isArray(input)) {
+        parsedList = input
+          .map((item) => parsePlaylistInput(item))
+          .filter((p) => p.provider === "youtube" && p.id);
+      } else if (typeof input === "string" && input && !input.startsWith("REPLACE_WITH_")) {
+        const parsed = parsePlaylistInput(input);
+        if (parsed.provider === "youtube" && parsed.id) {
+          parsedList = [parsed];
+        }
+      }
+
+      trackListRef.current = parsedList;
+      currentTrackIndexRef.current = 0;
+
+      if (parsedList.length === 0) return;
+
+      const first = parsedList[0];
       setPlayerState((prev) => ({
         ...prev,
-        playlistId: id,
+        playlistId: first.id,
         currentTime: 0,
         error: null,
       }));
 
-      if (!id || id.startsWith("REPLACE_WITH_")) return;
-
       if (!playerRef.current || !playerRef.current.getPlayerState) {
-        pendingMediaRef.current = { id, type, autoplay };
+        pendingMediaRef.current = { id: first.id, type: first.type, autoplay };
         return;
       }
 
-      executeLoad(id, type, autoplay);
+      executeLoad(first.id, first.type, autoplay);
     },
     [executeLoad]
   );
@@ -320,20 +366,6 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
       play();
     }
   }, [playerState.isPlaying, pause, play]);
-
-  const next = useCallback(() => {
-    if (!playerRef.current?.nextVideo) return;
-    try {
-      playerRef.current.nextVideo();
-    } catch {}
-  }, []);
-
-  const previous = useCallback(() => {
-    if (!playerRef.current?.previousVideo) return;
-    try {
-      playerRef.current.previousVideo();
-    } catch {}
-  }, []);
 
   const seek = useCallback((seconds: number) => {
     if (!playerRef.current?.seekTo) return;

@@ -18,10 +18,14 @@ export default function PlayMyList() {
       setActiveSlug(slug);
 
       const playlistConfig = moodPlaylists[slug];
-      if (playlistConfig && playlistConfig.playlistId) {
-        const parsed = parsePlaylistInput(playlistConfig.playlistId);
-        if (parsed.provider === "youtube" && parsed.id) {
-          provider.loadPlaylist(parsed.id, parsed.type);
+      if (playlistConfig) {
+        if (playlistConfig.tracks && playlistConfig.tracks.length > 0) {
+          provider.loadPlaylist(playlistConfig.tracks);
+        } else if (playlistConfig.playlistId) {
+          const parsed = parsePlaylistInput(playlistConfig.playlistId);
+          if (parsed.provider === "youtube" && parsed.id) {
+            provider.loadPlaylist(parsed.id, parsed.type);
+          }
         }
       }
     },
