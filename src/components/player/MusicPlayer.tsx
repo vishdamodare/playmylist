@@ -27,7 +27,9 @@ export function MusicPlayer({ mood, playerState, provider }: MusicPlayerProps) {
   const progressTrackRef = useRef<HTMLDivElement>(null);
 
   const playlistConfig = moodPlaylists[mood.slug];
-  const activeInput = playlistConfig?.playlistId || "";
+  const activeInput = Array.isArray(playlistConfig?.playlistId)
+    ? playlistConfig.playlistId[0]
+    : (playlistConfig?.playlistId || "");
   const parsedPlaylist = parsePlaylistInput(activeInput);
   const isSpotify = parsedPlaylist.provider === "spotify" && Boolean(parsedPlaylist.embedUrl);
 

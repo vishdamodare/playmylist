@@ -58,7 +58,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
   const playerRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingMediaRef = useRef<{ id: string; type: "playlist" | "video"; autoplay: boolean } | null>(null);
+  const pendingMediaRef = useRef<{ id: string | string[]; type: "playlist" | "video"; autoplay: boolean } | null>(null);
 
   const startProgressPolling = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -110,52 +110,62 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
     }
   }, []);
 
-  const executeLoad = useCallback((id: string, type: "playlist" | "video" = "playlist", autoplay: boolean = true) => {
-    const player = playerRef.current;
-    if (!player) return;
+  const executeLoad = useCallback(
+    (idOrList: string | string[], type: "playlist" | "video" = "playlist", autoplay: boolean = true) => {
+      const player = playerRef.current;
+      if (!player) return;
 
-    try {
-      player.unMute?.();
-      player.setVolume?.(80);
+      try {
+        player.unMute?.();
+        player.setVolume?.(80);
 
-      if (type === "video") {
-        if (autoplay && player.loadVideoById) {
-          player.loadVideoById({ videoId: id, startSeconds: 0 });
-        } else if (player.cueVideoById) {
-          player.cueVideoById({ videoId: id, startSeconds: 0 });
-        }
-      } else {
-        // Load native YouTube playlist in full without limitations
-        if (autoplay && player.loadPlaylist) {
-          try {
-            player.loadPlaylist({ list: id, listType: "playlist", index: 0, startSeconds: 0 });
-          } catch {
-            try {
-              player.loadPlaylist(id, 0, 0);
-            } catch {}
+        if (Array.isArray(idOrList)) {
+          // Native YouTube playlist from an array of video IDs
+          if (autoplay && player.loadPlaylist) {
+            player.loadPlaylist(idOrList, 0, 0);
+          } else if (player.cuePlaylist) {
+            player.cuePlaylist(idOrList, 0, 0);
           }
-        } else if (player.cuePlaylist) {
-          try {
-            player.cuePlaylist({ list: id, listType: "playlist", index: 0, startSeconds: 0 });
-          } catch {
+        } else if (type === "video") {
+          if (autoplay && player.loadVideoById) {
+            player.loadVideoById({ videoId: idOrList, startSeconds: 0 });
+          } else if (player.cueVideoById) {
+            player.cueVideoById({ videoId: idOrList, startSeconds: 0 });
+          }
+        } else {
+          // Single native playlist ID (PL...)
+          if (autoplay && player.loadPlaylist) {
             try {
-              player.cuePlaylist(id, 0, 0);
-            } catch {}
+              player.loadPlaylist({ list: idOrList, listType: "playlist", index: 0, startSeconds: 0 });
+            } catch {
+              try {
+                player.loadPlaylist(idOrList, 0, 0);
+              } catch {}
+            }
+          } else if (player.cuePlaylist) {
+            try {
+              player.cuePlaylist({ list: idOrList, listType: "playlist", index: 0, startSeconds: 0 });
+            } catch {
+              try {
+                player.cuePlaylist(idOrList, 0, 0);
+              } catch {}
+            }
           }
         }
-      }
 
-      if (autoplay) {
-        setTimeout(() => {
-          try {
-            player.playVideo?.();
-          } catch {}
-        }, 100);
+        if (autoplay) {
+          setTimeout(() => {
+            try {
+              player.playVideo?.();
+            } catch {}
+          }, 100);
+        }
+      } catch (e) {
+        console.error("Error executing YouTube load:", e);
       }
-    } catch (e) {
-      console.error("Error executing YouTube load:", e);
-    }
-  }, []);
+    },
+    []
+  );
 
   const next = useCallback(() => {
     if (!playerRef.current?.nextVideo) return;
@@ -251,7 +261,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
                   isBuffering: true,
                 }));
               } else if (state === 0) {
-                // When a song in a YouTube playlist ends, YouTube automatically loads and plays the next song
+                // When a song in a YouTube playlist ends, YouTube automatically plays the next song
                 updateTrackInfo();
               } else if (state === -1) {
                 setPlayerState((prev) => ({
@@ -308,10 +318,32 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
   const loadPlaylist = useCallback(
     (input: string | string[], defaultType: "playlist" | "video" = "playlist", autoplay: boolean = true) => {
-      const rawId = Array.isArray(input) ? input[0] : input;
-      if (!rawId || rawId.startsWith("REPLACE_WITH_")) return;
+      if (Array.isArray(input)) {
+        const videoIds = input
+          .map((item) => parsePlaylistInput(item).id)
+          .filter(Boolean);
 
-      const parsed = parsePlaylistInput(rawId);
+        if (videoIds.length === 0) return;
+
+        setPlayerState((prev) => ({
+          ...prev,
+          playlistId: videoIds[0],
+          currentTime: 0,
+          error: null,
+        }));
+
+        if (!playerRef.current || !playerRef.current.getPlayerState) {
+          pendingMediaRef.current = { id: videoIds, type: "playlist", autoplay };
+          return;
+        }
+
+        executeLoad(videoIds, "playlist", autoplay);
+        return;
+      }
+
+      if (!input || input.startsWith("REPLACE_WITH_")) return;
+
+      const parsed = parsePlaylistInput(input);
       if (parsed.provider !== "youtube" || !parsed.id) return;
 
       const playlistId = parsed.id;
