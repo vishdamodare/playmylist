@@ -1,4 +1,9 @@
-export const moodPlaylists: Record<string, { playlistId: string }> = {
+export interface MoodPlaylistConfig {
+  playlistId: string; // Accepts YouTube playlist ID/URL OR Spotify playlist ID/URL
+  type?: "youtube" | "spotify";
+}
+
+export const moodPlaylists: Record<string, MoodPlaylistConfig> = {
   "in-love": {
     playlistId: "REPLACE_WITH_LOVE_PLAYLIST_ID",
   },

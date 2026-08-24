@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { MOODS } from "@/data/moods";
 import { moodPlaylists } from "@/data/moodPlaylists";
+import { parsePlaylistInput } from "@/lib/playlistHelper";
 import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
 import { Home } from "@/components/home/Home";
 import { MoodExperience } from "@/components/experience/MoodExperience";
@@ -18,7 +19,10 @@ export default function PlayMyList() {
 
       const playlistConfig = moodPlaylists[slug];
       if (playlistConfig && playlistConfig.playlistId) {
-        provider.loadPlaylist(playlistConfig.playlistId);
+        const parsed = parsePlaylistInput(playlistConfig.playlistId);
+        if (parsed.provider === "youtube" && parsed.id) {
+          provider.loadPlaylist(parsed.id);
+        }
       }
     },
     [provider]
