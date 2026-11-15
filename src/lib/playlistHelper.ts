@@ -9,6 +9,24 @@ export interface ParsedPlaylist {
   embedUrl?: string;
 }
 
+const VIDEO_ID = "([0-9A-Za-z_-]{11})";
+const VIDEO_PATTERNS = [
+  new RegExp(`[?&]v=${VIDEO_ID}`), // youtube.com/watch?v=, music.youtube.com/watch?v=
+  new RegExp(`youtu\\.be/${VIDEO_ID}`),
+  new RegExp(`youtube\\.com/(?:shorts|embed|live|v)/${VIDEO_ID}`),
+];
+
+/** Pulls the 11-char video ID out of any YouTube song link (or a bare ID). Ignores `list=`. */
+export function extractVideoId(input: string): string | null {
+  const s = input.trim();
+  if (/^[0-9A-Za-z_-]{11}$/.test(s)) return s;
+  for (const re of VIDEO_PATTERNS) {
+    const m = s.match(re);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 export function parsePlaylistInput(input: string): ParsedPlaylist {
   if (!input || input.startsWith("REPLACE_WITH")) {
     return { provider: "unknown", type: "playlist", id: "" };
@@ -16,6 +34,8 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
 
   const trimmed = input.trim();
   const base = trimmed.split("?")[0].split("&")[0].trim();
+  // YouTube share links carry `?si=` too, so the Spotify heuristics below must skip them.
+  const isYouTubeUrl = /youtube\.com|youtu\.be/i.test(trimmed);
 
   // Check Spotify URL or URI or 22-char ID
   if (
@@ -39,9 +59,10 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
   }
 
   if (
-    (/^[a-zA-Z0-9]{22}$/.test(base) && !base.startsWith("PL") && !base.startsWith("RD")) ||
-    trimmed.includes("si=") ||
-    trimmed.includes("flow_ctx=")
+    !isYouTubeUrl &&
+    ((/^[a-zA-Z0-9]{22}$/.test(base) && !base.startsWith("PL") && !base.startsWith("RD")) ||
+      trimmed.includes("si=") ||
+      trimmed.includes("flow_ctx="))
   ) {
     const id = /^[a-zA-Z0-9]{22}$/.test(base) ? base : base.split("?")[0];
     return {
@@ -73,27 +94,10 @@ export function parsePlaylistInput(input: string): ParsedPlaylist {
     };
   }
 
-  // 3. Check YouTube single video / music watch link (watch?v=... or youtu.be/...)
-  if (trimmed.includes("watch?v=") || trimmed.includes("watch/") || trimmed.includes("youtu.be/")) {
-    const vMatch =
-      trimmed.match(/[?&]v=([0-9A-Za-z_-]{11})/) ||
-      trimmed.match(/youtu\.be\/([0-9A-Za-z_-]{11})/);
-    if (vMatch) {
-      return {
-        provider: "youtube",
-        type: "video",
-        id: vMatch[1],
-      };
-    }
-  }
-
-  // 4. If it's an 11-char YouTube video ID
-  if (/^[a-zA-Z0-9_-]{11}$/.test(base)) {
-    return {
-      provider: "youtube",
-      type: "video",
-      id: base,
-    };
+  // 3. Single video link or bare 11-char video ID
+  const videoId = extractVideoId(trimmed);
+  if (videoId) {
+    return { provider: "youtube", type: "video", id: videoId };
   }
 
   // Fallback

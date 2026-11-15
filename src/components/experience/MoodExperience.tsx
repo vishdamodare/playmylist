@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
   Pencil,
   Trash2,
   X,
@@ -12,14 +11,40 @@ import {
   Send,
   Mic,
   CloudRain,
-  Heart,
+  Snowflake,
+  Sun,
+  Moon,
+  Plus,
+  CloudLightning,
+  Wind,
 } from "lucide-react";
 import { Mood, WallItem, Story } from "@/types/mood";
 import { PlayerState, MusicProvider } from "@/types/player";
-import { MusicPlayer } from "@/components/player/MusicPlayer";
+import { MusicPlayer, MusicPlayerProps } from "@/components/player/MusicPlayer";
+import { StoryShelf } from "@/components/experience/StoryShelf";
+import { getExtraSongs, setExtraSongs, moodQueue } from "@/lib/moodSongs";
+import { extractVideoId } from "@/lib/playlistHelper";
+import { lookupSong, SongMeta } from "@/lib/youtubeMeta";
 import { MoodFx } from "@/components/experience/MoodFx";
-import { PageRain } from "@/components/experience/PageRain";
+import { PageWeather, Weather } from "@/components/experience/PageWeather";
+
+const WEATHERS: { kind: Weather; label: string; Icon: typeof Sun }[] = [
+  { kind: "rain", label: "Rain", Icon: CloudRain },
+  { kind: "storm", label: "Storm", Icon: CloudLightning },
+  { kind: "wind", label: "Wind", Icon: Wind },
+  { kind: "snow", label: "Snow", Icon: Snowflake },
+  { kind: "sun", label: "Sunshine", Icon: Sun },
+  { kind: "night", label: "Night", Icon: Moon },
+];
+
+/** Camcorder-style date stamp: today, filmed in '96. */
+function vhsStamp(): string {
+  const d = new Date();
+  const mon = d.toLocaleString("en-US", { month: "short" }).toUpperCase();
+  return `${mon}. ${String(d.getDate()).padStart(2, "0")} '96`;
+}
 import { storage } from "@/lib/storage";
+import { api, VoiceNote } from "@/lib/api";
 
 function hexToRgbTriplet(hex: string): string {
   const h = hex.replace("#", "");
@@ -32,6 +57,14 @@ interface MoodExperienceProps {
   onBack: () => void;
   playerState: PlayerState;
   provider: MusicProvider;
+  /** e.g. the site-wide Morning/Night switch */
+  headerExtra?: React.ReactNode;
+  /** Replaces the mood video panel (e.g. the listener's own photos/videos). */
+  visual?: React.ReactNode;
+  /** Replaces the quote above the shelf. */
+  epigraph?: React.ReactNode;
+  /** Song source override (e.g. "My Playlist" instead of the mood's built-in queue). */
+  songs?: Pick<MusicPlayerProps, "queue" | "onAddSongs" | "userSongIds" | "onRemoveSong" | "fallbackTitle" | "fallbackArtist" | "queueName">;
 }
 
 export function MoodExperience({
@@ -39,16 +72,49 @@ export function MoodExperience({
   onBack,
   playerState,
   provider,
+  headerExtra,
+  visual,
+  epigraph,
+  songs,
 }: MoodExperienceProps) {
   const t = mood.theme;
-  const bg = `linear-gradient(160deg, ${t.from} 0%, ${t.via} 55%, ${t.to} 100%)`;
 
-  const [storyIdx, setStoryIdx] = useState(0);
-  useEffect(() => {
-    setStoryIdx(0);
-  }, [mood.slug]);
+  const [weather, setWeather] = useState<Weather | null>(null);
 
-  const [rainMode, setRainMode] = useState(false);
+  // ── listener's own songs for this mood ──
+  const [extraSongs, setExtra] = useState<SongMeta[]>([]);
+  const [addSignal, setAddSignal] = useState(0);
+  useEffect(() => setExtra(getExtraSongs(mood.slug)), [mood.slug]);
+  const queue = moodQueue(mood.slug); // built-ins + saved extras (re-read each render, cheap)
+
+  const addSongs = async (text: string): Promise<string> => {
+    const tokens = text.split(/[\s,]+/).filter(Boolean);
+    const found = tokens.map(extractVideoId).filter((x): x is string => Boolean(x));
+    const bad = tokens.length - found.length;
+    const fresh = Array.from(new Set(found)).filter((id) => !queue.includes(id));
+    const dupes = found.length - fresh.length;
+    const looked = await Promise.all(fresh.map(lookupSong));
+    const added = looked.filter((x): x is SongMeta => x !== null);
+    const missing = looked.length - added.length;
+    if (added.length) {
+      const next = [...getExtraSongs(mood.slug), ...added];
+      setExtraSongs(mood.slug, next);
+      setExtra(next);
+    }
+    const parts: string[] = [];
+    if (added.length) parts.push(`Added ${added.length} song${added.length === 1 ? "" : "s"} ✓`);
+    if (dupes) parts.push(`${dupes} already here`);
+    if (missing) parts.push(`${missing} unavailable on YouTube`);
+    if (bad) parts.push(`${bad} not a YouTube song link`);
+    return parts.join(" · ") || "Nothing to add";
+  };
+
+  const removeSong = (id: string) => {
+    const next = getExtraSongs(mood.slug).filter((x) => x.id !== id);
+    setExtraSongs(mood.slug, next);
+    setExtra(next);
+  };
+  const rainMode = weather === "rain";
   const [flashKey, setFlashKey] = useState(0);
 
   useEffect(() => {
@@ -71,6 +137,8 @@ export function MoodExperience({
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState("");
   const [wallPosts, setWallPosts] = useState<WallItem[]>(mood.wall || []);
   const [communityStories, setCommunityStories] = useState<Story[]>([]);
   const [videoError, setVideoError] = useState(false);
@@ -86,15 +154,36 @@ export function MoodExperience({
     setVideoError(false);
 
     (async () => {
+      // Restore a privately saved draft ("Save for myself").
       try {
-        const stored = await storage.get(`community_stories:${mood.slug}`, true);
-        if (!cancelled && stored?.value) {
-          setCommunityStories(JSON.parse(stored.value));
-        } else if (!cancelled) {
-          setCommunityStories([]);
+        const saved = await storage.get(`draft:${mood.slug}`);
+        if (!cancelled && saved?.value) {
+          const { title, draft: body } = JSON.parse(saved.value);
+          setDraftTitle(title || "");
+          setDraft(body || "");
         }
       } catch {
+        // Corrupt draft — start fresh.
+      }
+
+      try {
+        // One-time move of stories posted before the database existed (they lived in localStorage).
+        const legacy = await storage.get(`community_stories:${mood.slug}`, true);
+        const old: Story[] = legacy?.value ? JSON.parse(legacy.value) : [];
+        if (old.length) {
+          for (const st of old.reverse()) await api.createStory(mood.slug, st.title, st.content, st.tags).catch(() => {});
+          await storage.set(`community_stories:${mood.slug}`, "[]", true);
+        }
+        const fromDb = await api.stories(mood.slug);
+        if (!cancelled) setCommunityStories(fromDb);
+      } catch {
         if (!cancelled) setCommunityStories([]);
+      }
+      try {
+        const notes = await api.voiceNotes(mood.slug);
+        if (!cancelled) setVoiceNotes(notes);
+      } catch {
+        if (!cancelled) setVoiceNotes([]);
       }
     })();
 
@@ -105,84 +194,41 @@ export function MoodExperience({
 
   const wordCount = draft.trim() ? draft.trim().split(/\s+/).length : 0;
 
+  // Bug fix: this only flashed "SAVED" before — nothing was stored.
   const handleSave = () => {
     if (!draft.trim()) return;
+    storage.set(`draft:${mood.slug}`, JSON.stringify({ title: draftTitle, draft }));
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1800);
   };
 
+  const clearSavedDraft = () => storage.set(`draft:${mood.slug}`, "");
+
   const handlePost = async () => {
-    if (!draft.trim()) return;
+    if (!draft.trim() || posting) return;
     const content = draft.trim();
     const title = draftTitle.trim() || "Community Reflection";
-
-    if (editingStoryId) {
-      // Update existing story
-      const updated = communityStories.map((s) =>
-        s.id === editingStoryId
-          ? {
-              ...s,
-              title,
-              content,
-            }
-          : s
-      );
-      setCommunityStories(updated);
-      setEditingStoryId(null);
+    setPosting(true);
+    setPostError("");
+    try {
+      if (editingStoryId) {
+        const updated = await api.updateStory(editingStoryId, title, content);
+        setCommunityStories((list) => list.map((st) => (st.id === updated.id ? updated : st)));
+        setEditingStoryId(null);
+      } else {
+        const created = await api.createStory(mood.slug, title, content, ["reflection", mood.label.toLowerCase()]);
+        setCommunityStories((list) => [created, ...list]);
+      }
       setDraftTitle("");
       setDraft("");
+      clearSavedDraft();
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2200);
       setTab("wall");
-
-      try {
-        await storage.set(
-          `community_stories:${mood.slug}`,
-          JSON.stringify(updated),
-          true
-        );
-      } catch {
-        // Ignore
-      }
-      return;
-    }
-
-    // 1. Create new story with custom title
-    const newStory: Story = {
-      id: `story-${Date.now()}`,
-      title,
-      author: "You (Just now)",
-      tags: ["reflection", mood.label.toLowerCase()],
-      content,
-      likes: 1,
-    };
-
-    const updatedStories = [newStory, ...communityStories].slice(0, 30);
-    setCommunityStories(updatedStories);
-    setStoryIdx(0); // Immediately switch the story card to show this new story!
-
-    // 2. Also update story wall list
-    setWallPosts((posts) => [
-      { text: `${title ? `[${title}] ` : ""}${content}`, author: "You" },
-      ...posts,
-    ]);
-
-    // 3. Clear draft and notify user
-    setDraftTitle("");
-    setDraft("");
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 2200);
-    setTab("wall");
-
-    // 4. Persist to storage
-    try {
-      await storage.set(
-        `community_stories:${mood.slug}`,
-        JSON.stringify(updatedStories),
-        true
-      );
-    } catch {
-      // Ignore
+    } catch (e) {
+      setPostError(e instanceof Error ? e.message : "Couldn't post — try again");
+    } finally {
+      setPosting(false);
     }
   };
 
@@ -200,51 +246,83 @@ export function MoodExperience({
   };
 
   const handleDeleteStory = async (storyId: string) => {
-    const updated = communityStories.filter((s) => s.id !== storyId);
-    setCommunityStories(updated);
-    if (editingStoryId === storyId) {
-      handleCancelEdit();
-    }
-    if (storyIdx >= updated.length + mood.stories.length) {
-      setStoryIdx(Math.max(0, updated.length + mood.stories.length - 1));
-    }
-
+    const before = communityStories;
+    setCommunityStories((list) => list.filter((st) => st.id !== storyId)); // optimistic
+    if (editingStoryId === storyId) handleCancelEdit();
     try {
-      await storage.set(
-        `community_stories:${mood.slug}`,
-        JSON.stringify(updated),
-        true
-      );
+      await api.deleteStory(storyId);
     } catch {
-      // Ignore
+      setCommunityStories(before); // put it back if the server refused
     }
   };
 
-  const toggleRecord = () => {
-    if (recording) return;
-    setRecording(true);
-    setTimeout(() => setRecording(false), 2400);
+  // ── Voice notes: real recording → Neon Object Storage (row in Postgres points at the object) ──
+  const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
+  const [recError, setRecError] = useState("");
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recStartRef = useRef(0);
+
+  const toggleRecord = async () => {
+    if (recording) {
+      recorderRef.current?.stop();
+      return;
+    }
+    setRecError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+      mr.onstop = async () => {
+        stream.getTracks().forEach((tr) => tr.stop());
+        setRecording(false);
+        const blob = new Blob(chunks, { type: (mr.mimeType || "audio/webm").split(";")[0] });
+        const duration = Math.round((Date.now() - recStartRef.current) / 1000);
+        try {
+          const note = await api.uploadVoice(mood.slug, blob, duration);
+          setVoiceNotes((n) => [note, ...n]);
+        } catch (e) {
+          setRecError(e instanceof Error ? e.message : "Upload failed");
+        }
+      };
+      recorderRef.current = mr;
+      recStartRef.current = Date.now();
+      mr.start();
+      setRecording(true);
+      setTimeout(() => mr.state === "recording" && mr.stop(), 5 * 60 * 1000); // cap at 5 min
+    } catch {
+      setRecError("Microphone unavailable — check permissions");
+    }
   };
 
-  // Combine user posted stories with default mood stories
-  const allStories = [...communityStories, ...mood.stories];
-  const story = allStories[storyIdx] || allStories[0] || mood.stories[0];
-  const isUserStory = story.id?.startsWith("story-") || story.author?.startsWith("You");
+  const deleteVoice = async (id: string) => {
+    setVoiceNotes((n) => n.filter((x) => x.id !== id));
+    await api.deleteVoice(id).catch(() => {});
+  };
 
-  const prevStory = () =>
-    setStoryIdx((i) => (i - 1 + allStories.length) % allStories.length);
-  const nextStory = () =>
-    setStoryIdx((i) => (i + 1) % allStories.length);
+  const allStories = communityStories;
+  const isUserStory = (s: Story) => Boolean(s.mine);
 
   return (
-    <div className="pml-mood pml-mood-enter" style={{ background: bg }}>
+    <div
+      className="pml-mood pml-view-enter"
+      data-weather={weather ?? undefined}
+      style={{ "--m-from": t.from, "--m-via": t.via, "--m-to": t.to } as React.CSSProperties}
+    >
       <header>
         <nav className="pml-mood-nav" aria-label="Mood navigation">
           <button className="pml-back" onClick={onBack}>
             <ArrowLeft size={15} /> Moods
           </button>
-          <div className="pml-moodlabel-pill pml-mono" style={{ fontSize: 11 }}>
-            {mood.label.toUpperCase()}
+          <div className="pml-mood-nav-right">
+            {headerExtra}
+            <button className="pml-add-song-btn" onClick={() => setAddSignal((n) => n + 1)}>
+              <Plus size={14} /> Add your song
+              {(songs?.userSongIds ?? extraSongs).length > 0 && <span>{(songs?.userSongIds ?? extraSongs).length}</span>}
+            </button>
+            <div className="pml-moodlabel-pill pml-mono" style={{ fontSize: 11 }}>
+              {mood.label.toUpperCase()}
+            </div>
           </div>
         </nav>
       </header>
@@ -256,9 +334,10 @@ export function MoodExperience({
         />
       </div>
 
-      {/* Page-wide rain + thunder */}
-      {rainMode && <PageRain videoSrc={mood.rainVideoSrc} />}
+      {/* Page-wide weather (+ thunder in the rain) and the 90s film grain */}
+      {weather && <PageWeather key={weather} kind={weather} rainVideoSrc={mood.rainVideoSrc} />}
       {rainMode && <div key={flashKey} className="pml-page-thunder-flash" aria-hidden="true" />}
+      <div className="pml-film" aria-hidden="true" />
 
       <main className="pml-mood-body">
         <div className="pml-left-col">
@@ -272,7 +351,9 @@ export function MoodExperience({
               } as React.CSSProperties
             }
           >
-            {mood.videoSrc && !videoError ? (
+            {visual ? (
+              visual
+            ) : mood.videoSrc && !videoError ? (
               <video
                 key={mood.videoSrc}
                 className="pml-visual-video"
@@ -308,61 +389,102 @@ export function MoodExperience({
             )}
             <MoodFx mood={mood} />
 
-            <button
-              className={`pml-rainmode-btn ${rainMode ? "active" : ""}`}
-              onClick={() => setRainMode((r) => !r)}
-              aria-pressed={rainMode}
-              aria-label="Toggle rain mode"
-            >
-              <CloudRain size={13} /> {rainMode ? "Rain on" : "Rain"}
-            </button>
+            <div className="pml-weather" role="group" aria-label="Weather">
+              {WEATHERS.map(({ kind, label, Icon }) => (
+                <button
+                  key={kind}
+                  className={`pml-weather-btn ${weather === kind ? "active" : ""}`}
+                  data-kind={kind}
+                  onClick={() => setWeather((w) => (w === kind ? null : kind))}
+                  aria-pressed={weather === kind}
+                  aria-label={label}
+                  title={label}
+                >
+                  <Icon size={13} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="pml-vhs pml-mono" aria-hidden="true">
+              <span className="pml-vhs-play">▶ PLAY</span>
+              <span>{vhsStamp()}</span>
+            </div>
 
             <div className="pml-visual-caption pml-mono">{mood.visualLabel}</div>
           </div>
 
           <div
-            className="pml-notecard"
+            className="pml-notecard pml-desk"
             style={
               {
                 "--nvia": t.via,
                 "--nfrom": t.from,
+                "--ink-accent": t.accent,
               } as React.CSSProperties
             }
           >
-            <div className="pml-notecard-tabs">
+            {/* folder index tabs */}
+            <div className="pml-notecard-tabs" role="tablist">
               <button
+                role="tab"
+                aria-selected={tab === "write"}
                 className={`pml-notecard-tab ${tab === "write" ? "active" : ""}`}
                 onClick={() => setTab("write")}
               >
                 <Pencil size={13} /> Write
               </button>
               <button
+                role="tab"
+                aria-selected={tab === "wall"}
                 className={`pml-notecard-tab ${tab === "wall" ? "active" : ""}`}
                 onClick={() => setTab("wall")}
               >
-                <MessageSquare size={13} /> Story Wall ({wallPosts.length + communityStories.length})
+                <MessageSquare size={13} /> Story Wall
+                <span className="pml-tab-count">{wallPosts.length + communityStories.length}</span>
               </button>
             </div>
 
             {tab === "write" ? (
-              <>
+              <div className="pml-paper" key="write">
+                {/* paper clip + washi tape + punch holes */}
+                <svg className="pml-paper-clip" viewBox="0 0 24 64" aria-hidden="true">
+                  <path
+                    d="M8 52 V12 a6 6 0 0 1 12 0 V50 a9 9 0 0 1 -18 0 V18"
+                    fill="none"
+                    stroke="url(#clipMetal)"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                  />
+                  <defs>
+                    <linearGradient id="clipMetal" x1="0" x2="1">
+                      <stop offset="0" stopColor="#8d8f99" />
+                      <stop offset=".5" stopColor="#f2f3f7" />
+                      <stop offset="1" stopColor="#7d7f88" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span className="pml-paper-tape" aria-hidden="true" />
+                <span className="pml-paper-holes" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+
                 {editingStoryId && (
                   <div className="pml-notecard-edit-banner">
-                    <span>Editing reflection</span>
-                    <button
-                      className="pml-notecard-edit-cancel"
-                      onClick={handleCancelEdit}
-                      title="Cancel Edit"
-                    >
+                    <span>✎ Editing your story</span>
+                    <button className="pml-notecard-edit-cancel" onClick={handleCancelEdit} title="Cancel Edit">
                       <X size={12} /> Cancel
                     </button>
                   </div>
                 )}
 
+                <span className="pml-paper-date">{mood.label} · {vhsStamp()}</span>
                 <input
                   type="text"
                   className="pml-notecard-title-input"
-                  placeholder="Story Title (optional)"
+                  placeholder="Untitled story…"
                   value={draftTitle}
                   onChange={(e) => setDraftTitle(e.target.value)}
                   maxLength={60}
@@ -370,166 +492,176 @@ export function MoodExperience({
                 />
                 <textarea
                   className="pml-notecard-textarea"
-                  placeholder="What does this feeling remind you of? Write your story..."
+                  placeholder="What does this feeling remind you of? Write it down…"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   aria-label={`Reflection for ${mood.label}`}
                 />
+
                 <div className="pml-notecard-footer">
-                  <span className="pml-notecard-status pml-mono">
-                    {savedFlash
-                      ? "SAVED ✓"
-                      : wordCount
-                      ? `${wordCount} WORD${wordCount === 1 ? "" : "S"}`
-                      : "NOTHING WRITTEN YET"}
+                  <span className="pml-notecard-status">
+                    {wordCount ? `${wordCount} word${wordCount === 1 ? "" : "s"}` : "a blank page"}
                   </span>
+                  {savedFlash && (
+                    <span className="pml-ink-stamp" aria-live="polite">
+                      Saved
+                    </span>
+                  )}
+                  {postError && <p className="pml-post-error" role="alert">{postError}</p>}
                   <div className="pml-notecard-actions">
-                    <button className="pml-notecard-btn ghost" onClick={handleSave}>
-                      <Lock size={13} /> Save for myself
+                    <button className="pml-notecard-btn ghost" onClick={handleSave} disabled={!draft.trim()}>
+                      <Lock size={13} /> Keep it private
                     </button>
                     <button
-                      className="pml-notecard-btn solid"
-                      style={{ background: t.accent }}
+                      className="pml-notecard-btn solid pml-stamp-btn"
+                      style={{ "--stamp": t.accent } as React.CSSProperties}
                       onClick={handlePost}
-                      disabled={!draft.trim()}
+                      disabled={!draft.trim() || posting}
                     >
-                      {editingStoryId ? "Update Story" : "Post it"} <Send size={13} />
+                      <span className="pml-stamp-face">
+                        <Send size={14} />
+                        <b>{posting ? "Posting…" : editingStoryId ? "Update" : "Post it"}</b>
+                        <small>to the shelf</small>
+                      </span>
                     </button>
                   </div>
-                  <p className="pml-notecard-hint">
-                    Publishing places your reflection on the Story Wall & Story card.
-                  </p>
                 </div>
-                <div className="pml-notecard-voice">
-                  <span className="pml-mono">VOICE NOTES</span>
-                  <button
-                    className={`pml-notecard-record ${
-                      recording ? "is-recording" : ""
-                    }`}
-                    onClick={toggleRecord}
-                    style={
-                      {
-                        "--rec-color": t.accent,
-                        "--rec-rgb": hexToRgbTriplet(t.accent),
-                      } as React.CSSProperties
-                    }
-                  >
-                    <Mic size={13} /> {recording ? "Recording…" : "Record"}
-                  </button>
-                </div>
-              </>
+              </div>
             ) : (
-              <div className="pml-wall-list">
-                {/* Community Stories editable list */}
-                {communityStories.map((st) => (
-                  <div className="pml-wall-item pml-wall-item-user" key={st.id}>
-                    <div className="pml-wall-header">
-                      <strong className="pml-wall-title">{st.title}</strong>
-                      <div className="pml-wall-actions">
-                        <button
-                          className="pml-action-btn edit"
-                          onClick={() => handleStartEdit(st)}
-                          title="Edit story"
-                        >
-                          <Pencil size={12} />
-                        </button>
-                        <button
-                          className="pml-action-btn delete"
-                          onClick={() => handleDeleteStory(st.id || "")}
-                          title="Delete story"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+              <div className="pml-cork" key="wall">
+                <div className="pml-wall-list">
+                  {communityStories.map((st, i) => (
+                    <div className="pml-wall-item pml-wall-item-user" key={st.id} style={{ "--tilt": `${(i % 3) - 1}deg` } as React.CSSProperties}>
+                      <span className="pml-pin" aria-hidden="true" />
+                      <div className="pml-wall-header">
+                        <strong className="pml-wall-title">{st.title}</strong>
+                        <div className="pml-wall-actions">
+                          <button className="pml-action-btn edit" onClick={() => handleStartEdit(st)} title="Edit story">
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            className="pml-action-btn delete"
+                            onClick={() => handleDeleteStory(st.id || "")}
+                            title="Delete story"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
+                      <p className="pml-wall-text">{st.content}</p>
+                      <span className="pml-wall-meta">— you</span>
                     </div>
-                    <p className="pml-wall-text">{st.content}</p>
-                    <span className="pml-wall-meta pml-mono">You (Just now)</span>
+                  ))}
+
+                  {wallPosts.map((post, i) => (
+                    <div
+                      className="pml-wall-item"
+                      key={`wall-${i}`}
+                      style={{ "--tilt": `${((i + communityStories.length) % 3) - 1}deg` } as React.CSSProperties}
+                    >
+                      <span className="pml-pin" aria-hidden="true" />
+                      <p className="pml-wall-text">{post.text}</p>
+                      <span className="pml-wall-meta">— {post.author}</span>
+                    </div>
+                  ))}
+
+                  {communityStories.length === 0 && wallPosts.length === 0 && (
+                    <p className="pml-wall-empty">Nothing pinned yet — be the first.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 90s pocket tape recorder */}
+            <div className={`pml-recorder ${recording ? "is-recording" : ""}`}>
+              <span className="pml-rec-grille" aria-hidden="true" />
+              <span className="pml-rec-window" aria-hidden="true">
+                <i className="pml-cas-reel" />
+                <i className="pml-cas-reel" />
+              </span>
+              <span className="pml-rec-label">Voice notes</span>
+              <button
+                className={`pml-notecard-record ${recording ? "is-recording" : ""}`}
+                onClick={toggleRecord}
+                style={
+                  {
+                    "--rec-color": t.accent,
+                    "--rec-rgb": hexToRgbTriplet(t.accent),
+                  } as React.CSSProperties
+                }
+              >
+                <span className="pml-rec-led" aria-hidden="true" />
+                <Mic size={13} /> {recording ? "Stop" : "Rec"}
+              </button>
+            </div>
+            {(voiceNotes.length > 0 || recError) && (
+              <div className="pml-voice-notes">
+                {recError && <p className="pml-voice-error">{recError}</p>}
+                {voiceNotes.map((n) => (
+                  <div className="pml-voice-note" key={n.id}>
+                    <span className="pml-voice-meta">
+                      {Math.floor(n.duration / 60)}:{String(n.duration % 60).padStart(2, "0")} ·{" "}
+                      {new Date(n.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                    </span>
+                    <audio src={n.url} controls preload="none" />
+                    <button onClick={() => deleteVoice(n.id)} aria-label="Delete voice note" title="Delete">
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 ))}
-
-                {wallPosts.map((post, i) => (
-                  <div className="pml-wall-item" key={`wall-${i}`}>
-                    <p className="pml-wall-text">{post.text}</p>
-                    <span className="pml-wall-meta pml-mono">{post.author}</span>
-                  </div>
-                ))}
-
-                {communityStories.length === 0 && wallPosts.length === 0 && (
-                  <p className="pml-wall-empty pml-mono">
-                    NO REFLECTIONS YET — BE THE FIRST
-                  </p>
-                )}
               </div>
             )}
           </div>
         </div>
 
         <div className="pml-story-col">
-          <div className={`pml-story-shield ${rainMode ? "is-raining" : ""}`}>
-            <p className="pml-quote">&ldquo;{mood.quote}&rdquo;</p>
+          <div className={`pml-story-shield ${weather ? "has-weather" : ""}`}>
+            {epigraph ?? (
+            <figure className="pml-epigraph" key={mood.slug}>
+              <span className="pml-epigraph-mark" aria-hidden="true">&ldquo;</span>
+              <blockquote className="pml-quote">
+                {mood.quote.split(" ").map((w, i) => (
+                  <span key={i} className="pml-quote-word" style={{ animationDelay: `${120 + i * 55}ms` }}>
+                    {w}{" "}
+                  </span>
+                ))}
+              </blockquote>
+              <figcaption className="pml-epigraph-cap">
+                <span className="pml-epigraph-rule" aria-hidden="true" />
+                {mood.label} · side A
+                <span className="pml-epigraph-rule" aria-hidden="true" />
+              </figcaption>
+            </figure>
+            )}
 
-            <div key={story.id || storyIdx} className="pml-story-block">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="pml-tags">
-                  {story.tags.map((tag) => (
-                    <span className="pml-tag" key={tag}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Edit & Delete buttons if user-authored story */}
-                {isUserStory && story.id && (
-                  <div className="pml-story-user-actions">
-                    <button
-                      className="pml-story-action-btn edit"
-                      onClick={() => handleStartEdit(story)}
-                      title="Edit this story"
-                    >
-                      <Pencil size={13} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      className="pml-story-action-btn delete"
-                      onClick={() => handleDeleteStory(story.id || "")}
-                      title="Delete this story"
-                    >
-                      <Trash2 size={13} />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <h2 className="pml-story-title">{story.title}</h2>
-              <p className="pml-story-content">{story.content}</p>
-              <p className="pml-story-author">{story.author}</p>
-            </div>
-
-            <div className="pml-storynav">
-              <button
-                className="pml-storynav-btn"
-                onClick={prevStory}
-                aria-label="Previous story"
-              >
-                <ArrowLeft size={13} /> Previous story
-              </button>
-              <span className="pml-storynav-count pml-mono">
-                {storyIdx + 1} / {allStories.length}
-              </span>
-              <button
-                className="pml-storynav-btn"
-                onClick={nextStory}
-                aria-label="Next story"
-              >
-                Next story <ArrowRight size={13} />
-              </button>
-            </div>
+            <StoryShelf
+              stories={allStories}
+              moodLabel={mood.label}
+              theme={t}
+              isUserStory={isUserStory}
+              onEdit={handleStartEdit}
+              onDelete={(s) => handleDeleteStory(s.id || "")}
+              isPlaying={playerState.isPlaying}
+            />
           </div>
         </div>
       </main>
 
-      <MusicPlayer mood={mood} playerState={playerState} provider={provider} />
+      <MusicPlayer
+        accent={t.accent}
+        accent2={t.accent2}
+        queue={queue}
+        onAddSongs={addSongs}
+        userSongIds={extraSongs.map((x) => x.id)}
+        onRemoveSong={removeSong}
+        openAddSignal={addSignal}
+        fallbackTitle={mood.tracks?.[0]?.title || mood.playlistName}
+        fallbackArtist={mood.tracks?.[0]?.artist}
+        queueName={mood.playlistName}
+        playerState={playerState}
+        provider={provider}
+        {...songs}
+      />
     </div>
   );
 }

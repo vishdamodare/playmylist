@@ -10,6 +10,8 @@ export interface PlayerState {
   playlistId?: string;
   volume: number;
   error?: string | null;
+  /** videos YouTube refused to play here (embedding disabled) */
+  blockedIds?: string[];
 }
 
 export interface MusicProvider {
@@ -20,5 +22,10 @@ export interface MusicProvider {
   previous: () => void;
   seek: (seconds: number) => void;
   setVolume: (volume: number) => void;
-  loadPlaylist: (playlistInput: string | string[], type?: "playlist" | "video") => void;
+  loadPlaylist: (
+    playlistInput: string | string[],
+    type?: "playlist" | "video",
+    autoplay?: boolean,
+    startIndex?: number
+  ) => void;
 }

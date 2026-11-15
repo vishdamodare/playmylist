@@ -14,6 +14,8 @@ export interface Story {
   tags: string[];
   content: string;
   likes?: number;
+  /** written by this browser (server-side ownership) */
+  mine?: boolean;
 }
 
 export interface WallItem {
@@ -37,7 +39,6 @@ export interface Mood {
   journalPrompt?: string;
   videoSrc?: string;
   rainVideoSrc?: string;
-  stories: Story[];
   playlistName: string;
   tracks?: TrackPlaceholder[];
   wall?: WallItem[];

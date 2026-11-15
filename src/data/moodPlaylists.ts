@@ -28,13 +28,6 @@ export const moodPlaylists: Record<string, MoodPlaylistConfig> = {
       "KMZYqDKsKIc",
     ],
   },
-  "The-Weekend": {
-    playlistId: [
-      "DgBM12cGM-Q",
-      "a40tAP5MC6M",
-      "KMZYqDKsKIc",
-    ],
-  },
   "one-sided": {
     playlistId: [
       "-BJt4fCAtZE",

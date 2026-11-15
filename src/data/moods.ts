@@ -16,32 +16,6 @@ export const MOODS: Mood[] = [
     quote: "Some feelings don't need a reason. They just need a song.",
     visualLabel: "GOLDEN HOUR · CITY WALK · 6:48 PM",
     videoSrc: "/videos/moods/in-love.mp4",
-    stories: [
-      {
-        id: "in-love-1",
-        title: "The Walk Home",
-        author: "Anonymous, 24",
-        tags: ["new love", "butterflies"],
-        content:
-          "We took the long way home again. Neither of us said why. The streetlights were doing that thing where they flicker on one at a time, and I remember thinking — I want to remember this exact version of tired.",
-      },
-      {
-        id: "in-love-2",
-        title: "Golden Hour",
-        author: "Anonymous",
-        tags: ["warm", "hopeful"],
-        content:
-          "Everything looks different now. The streets I walked a thousand times suddenly look like film stills. I catch myself smiling at nothing — at the way light moves through trees, at songs I've heard a hundred times that suddenly make sense.",
-      },
-      {
-        id: "in-love-3",
-        title: "The List",
-        author: "Anonymous, 19",
-        tags: ["new love", "nervous"],
-        content:
-          "I made a list once of everything I wanted in someone. You don't match half of it. You match all of the things I didn't know to ask for.",
-      },
-    ],
     playlistName: "Falling in Love Slowly",
     tracks: [
       { title: "Slow Bloom", artist: "Wren & Sable", duration: "3:12" },
@@ -74,32 +48,6 @@ export const MOODS: Mood[] = [
     quote: "I only call you when it's half past five...",
     visualLabel: "AFTER HOURS · 11:42 PM",
     videoSrc: "/videos/moods/heartbroken.mp4",
-    stories: [
-      {
-        id: "weeknd-1",
-        title: "After Hours",
-        author: "Anonymous",
-        tags: ["the weeknd", "late night"],
-        content:
-          "Driving under empty streetlights at 2 AM with The Weeknd on repeat. Some songs don't heal you. They just understand the night.",
-      },
-      {
-        id: "weeknd-2",
-        title: "Half Past Five",
-        author: "Anonymous, 24",
-        tags: ["the weeknd", "late night"],
-        content:
-          "My phone still lights up late at night, like some habits never leave. When the city sleeps, the melody takes over.",
-      },
-      {
-        id: "weeknd-3",
-        title: "Starboy Vibes",
-        author: "Anonymous",
-        tags: ["the weeknd", "vibes"],
-        content:
-          "The baseline hits differently when the world is quiet outside.",
-      },
-    ],
     playlistName: "The Weeknd | Late Night Drive",
     tracks: [
       { title: "Unsent", artist: "Low Tide Choir", duration: "4:02" },
@@ -132,32 +80,6 @@ export const MOODS: Mood[] = [
     quote: "I loved loud enough for two people. Only one of us noticed.",
     visualLabel: "EMPTY CHAIR · CAFÉ WINDOW · 4:10 PM",
     videoSrc: "/videos/moods/one-sided.mp4",
-    stories: [
-      {
-        id: "one-sided-1",
-        title: "The Reply I Practiced",
-        author: "Anonymous, 21",
-        tags: ["one sided", "unspoken"],
-        content:
-          "I had a whole reply ready if you ever asked how I felt. Three years of editing it down. You never asked. I think some of us just get really good at loving quietly and calling it patience.",
-      },
-      {
-        id: "one-sided-2",
-        title: "Front Row",
-        author: "Anonymous",
-        tags: ["one sided", "friendship"],
-        content:
-          "I know your coffee order, your Sunday routine, the name of your childhood dog. You know I exist. That's the whole trade, and somehow I keep making it.",
-      },
-      {
-        id: "one-sided-3",
-        title: "Almost Said It",
-        author: "Anonymous, 23",
-        tags: ["one sided", "almost"],
-        content:
-          "I got as far as 'I need to tell you something' four separate times. Each time I finished the sentence with 'never mind.' I think I like the almost more than I'd like the answer.",
-      },
-    ],
     playlistName: "3AM Thoughts",
     tracks: [
       { title: "You Never Asked", artist: "Coral Season", duration: "3:33" },
@@ -190,32 +112,6 @@ export const MOODS: Mood[] = [
     quote: "Two time zones, one heartbeat, running slightly out of sync.",
     visualLabel: "NIGHT TRAIN · CITY LIGHTS · 1:15 AM",
     videoSrc: "/videos/moods/long-distance.mp4",
-    stories: [
-      {
-        id: "long-distance-1",
-        title: "Seven Hours Ahead",
-        author: "Anonymous",
-        tags: ["long distance", "waiting"],
-        content:
-          "You're having breakfast while I'm falling asleep. I've learned to love someone in fragments — a good-morning that arrives at midnight, a goodnight that greets my alarm. Distance made me fluent in a language only we speak.",
-      },
-      {
-        id: "long-distance-2",
-        title: "Departures Board",
-        author: "Anonymous, 25",
-        tags: ["long distance", "airports"],
-        content:
-          "I've started to like airports. They're the only place that feels honest about how this works — a countdown, a gate number, the exact minute we stop being in the same room.",
-      },
-      {
-        id: "long-distance-3",
-        title: "Same Moon",
-        author: "Anonymous",
-        tags: ["long distance", "small comforts"],
-        content:
-          "Someone told me we're looking at the same moon, just at different times, and I've never let go of that. It's not much. It's ours.",
-      },
-    ],
     playlistName: "Long Distance Nights",
     tracks: [
       { title: "Seven Hours Ahead", artist: "Marlowe", duration: "3:48" },
@@ -248,32 +144,6 @@ export const MOODS: Mood[] = [
     quote: "A full room can still feel like an empty one.",
     visualLabel: "EMPTY ROOM · STREETLIGHT · 10:03 PM",
     videoSrc: "/videos/moods/lonely.mp4",
-    stories: [
-      {
-        id: "lonely-1",
-        title: "The Sound of the Fridge",
-        author: "Anonymous, 27",
-        tags: ["lonely", "quiet"],
-        content:
-          "It's not the big moments that get me. It's the small ones — cooking for one, hearing the fridge hum louder than usual. I've started leaving the radio on, just so the apartment sounds a little more like it's mine and a little less like it's just me.",
-      },
-      {
-        id: "lonely-2",
-        title: "Group Chat",
-        author: "Anonymous",
-        tags: ["lonely", "crowded"],
-        content:
-          "I'm in six group chats and I still typed 'anyone up?' into a search bar before remembering there was no one to send it to.",
-      },
-      {
-        id: "lonely-3",
-        title: "Two Cups",
-        author: "Anonymous, 30",
-        tags: ["lonely", "habit"],
-        content:
-          "I still buy the two-person size of everything. I tell myself it's just cheaper per unit. I don't examine that sentence too closely.",
-      },
-    ],
     playlistName: "Songs for the Quiet Hours",
     tracks: [
       { title: "Radio On", artist: "Nadia Voss", duration: "3:29" },
@@ -306,32 +176,6 @@ export const MOODS: Mood[] = [
     quote: "Every thought sounds louder after midnight.",
     visualLabel: "CEILING FAN · PHONE GLOW · 2:37 AM",
     videoSrc: "/videos/moods/late-night.mp4",
-    stories: [
-      {
-        id: "late-night-1",
-        title: "The Thoughts That Wait",
-        author: "Anonymous",
-        tags: ["late night", "overthinking"],
-        content:
-          "My thoughts are polite during the day. They wait their turn. But at 2AM they all show up at once, uninvited, rearranging the furniture in my head until I give up on sleeping and just sit with them for a while.",
-      },
-      {
-        id: "late-night-2",
-        title: "The Replay",
-        author: "Anonymous, 22",
-        tags: ["late night", "regret"],
-        content:
-          "I replayed a conversation from 2019 tonight and lost an argument I never actually had. My brain keeps the receipts for things nobody's asking about.",
-      },
-      {
-        id: "late-night-3",
-        title: "Ceiling Stare",
-        author: "Anonymous",
-        tags: ["late night", "insomnia"],
-        content:
-          "There's a crack in my ceiling shaped like a river. I've mapped its whole coastline by now. Some nights that's the only progress I make.",
-      },
-    ],
     playlistName: "2AM Thoughts",
     tracks: [
       { title: "Ceiling Fan", artist: "Marlowe", duration: "3:20" },
