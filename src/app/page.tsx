@@ -13,6 +13,7 @@ import { MusicPlayer } from "@/components/player/MusicPlayer";
 import { MusicProvider } from "@/types/player";
 import { moodQueue } from "@/lib/moodSongs";
 import { SkyToggle } from "@/components/SkyToggle";
+import { NamePrompt } from "@/components/NamePrompt";
 
 /** "home", "playlist" (yours), a browse page, or a mood slug. */
 type View = string;
@@ -165,6 +166,7 @@ export default function PlayMyList() {
         />
       )}
       <YouTubePlayer />
+      <NamePrompt />
     </div>
   );
 }

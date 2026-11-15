@@ -280,7 +280,9 @@ export function MusicPlayer({
             if (e.key === "ArrowLeft") provider.seek(Math.max(0, currentTime - 5));
           }}
         >
-          <div className="pml-progress-fill" style={{ width: `${progressPercent}%` }}>
+          {/* transform-only (scaleX / translateX): playback never triggers layout */}
+          <div className="pml-progress-fill" style={{ "--p": progressPercent / 100 } as React.CSSProperties} />
+          <div className="pml-progress-head" style={{ "--p": progressPercent / 100 } as React.CSSProperties}>
             <span className="pml-progress-knob" />
           </div>
         </div>

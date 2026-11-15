@@ -45,6 +45,19 @@ function vhsStamp(): string {
 }
 import { storage } from "@/lib/storage";
 import { api, VoiceNote } from "@/lib/api";
+import { askName, useProfile } from "@/lib/profile";
+
+/** What each room says after your name. */
+const HELLO: Record<string, string> = {
+  "in-love": "this one's for the butterflies.",
+  "the-weeknd": "the night is yours. turn it up.",
+  "one-sided": "you deserve to be loved back.",
+  "long-distance": "it's only miles. they're still yours.",
+  lonely: "you're less alone than it feels.",
+  "late-night": "can't sleep either? stay a while.",
+  "my-playlist": "welcome to your own room.",
+};
+let askedThisVisit = false;
 
 function hexToRgbTriplet(hex: string): string {
   const h = hex.replace("#", "");
@@ -78,6 +91,18 @@ export function MoodExperience({
   songs,
 }: MoodExperienceProps) {
   const t = mood.theme;
+  const profile = useProfile();
+
+  // First mood of the visit: ask what to call them (after the page transition settles).
+  useEffect(() => {
+    if (askedThisVisit || profile.name || profile.skipped) return;
+    const id = setTimeout(() => {
+      if (askedThisVisit) return;
+      askedThisVisit = true;
+      askName();
+    }, 1400);
+    return () => clearTimeout(id);
+  }, [profile.name, profile.skipped]);
 
   const [weather, setWeather] = useState<Weather | null>(null);
 
@@ -206,6 +231,8 @@ export function MoodExperience({
 
   const handlePost = async () => {
     if (!draft.trim() || posting) return;
+    // Sign it: ask once for a name before the first post (they can still stay anonymous).
+    if (!profile.name && !profile.skipped && !editingStoryId) await askName();
     const content = draft.trim();
     const title = draftTitle.trim() || "Community Reflection";
     setPosting(true);
@@ -262,8 +289,69 @@ export function MoodExperience({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recStartRef = useRef(0);
 
+  // Live dictation: what you say is typed into the journal while the voice note records (Web Speech API).
+  const speechRef = useRef<{ stop: () => void } | null>(null);
+  const [listening, setListening] = useState(false);
+
+  const startDictation = () => {
+    type Rec = {
+      lang: string;
+      continuous: boolean;
+      interimResults: boolean;
+      onresult: (e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void;
+      onend: () => void;
+      onerror: (e: { error: string }) => void;
+      start: () => void;
+      stop: () => void;
+    };
+    const w = window as unknown as { SpeechRecognition?: new () => Rec; webkitSpeechRecognition?: new () => Rec };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Ctor) {
+      setRecError("Live typing isn't supported in this browser (try Chrome, Edge or Safari) — your voice note still saves.");
+      return;
+    }
+    setTab("write");
+    let active = true;
+    let base = "";
+    let finals = "";
+    setDraft((d) => (base = d.trim() ? d.replace(/\s*$/, "") + (/[.!?]$/.test(d.trim()) ? " " : "\n\n") : ""));
+    const rec = new Ctor();
+    rec.lang = navigator.language || "en-US";
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        const text = r[0].transcript;
+        if (r.isFinal) finals += (finals && !finals.endsWith(" ") ? " " : "") + text.trim();
+        else interim += text;
+      }
+      const spoken = (finals + (interim ? (finals ? " " : "") + interim.trim() : "")).replace(/^\w/, (c) => c.toUpperCase());
+      setDraft(base + spoken);
+    };
+    // Browsers end recognition after a pause; keep listening until Stop.
+    rec.onend = () => (active ? rec.start() : setListening(false));
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        active = false;
+        setRecError("Live typing was blocked — allow microphone/speech access to type as you talk.");
+      }
+    };
+    rec.start();
+    setListening(true);
+    speechRef.current = {
+      stop: () => {
+        active = false;
+        rec.stop();
+      },
+    };
+  };
+
   const toggleRecord = async () => {
     if (recording) {
+      speechRef.current?.stop();
+      speechRef.current = null;
       recorderRef.current?.stop();
       return;
     }
@@ -274,6 +362,8 @@ export function MoodExperience({
       const chunks: Blob[] = [];
       mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
       mr.onstop = async () => {
+        speechRef.current?.stop(); // also when the 5-minute cap ends the recording
+        speechRef.current = null;
         stream.getTracks().forEach((tr) => tr.stop());
         setRecording(false);
         const blob = new Blob(chunks, { type: (mr.mimeType || "audio/webm").split(";")[0] });
@@ -289,11 +379,14 @@ export function MoodExperience({
       recStartRef.current = Date.now();
       mr.start();
       setRecording(true);
+      startDictation();
       setTimeout(() => mr.state === "recording" && mr.stop(), 5 * 60 * 1000); // cap at 5 min
     } catch {
       setRecError("Microphone unavailable — check permissions");
     }
   };
+
+  useEffect(() => () => speechRef.current?.stop(), []);
 
   const deleteVoice = async (id: string) => {
     setVoiceNotes((n) => n.filter((x) => x.id !== id));
@@ -500,7 +593,7 @@ export function MoodExperience({
 
                 <div className="pml-notecard-footer">
                   <span className="pml-notecard-status">
-                    {wordCount ? `${wordCount} word${wordCount === 1 ? "" : "s"}` : "a blank page"}
+                    {listening ? "● listening — talk and it writes" : wordCount ? `${wordCount} word${wordCount === 1 ? "" : "s"}` : "a blank page"}
                   </span>
                   {savedFlash && (
                     <span className="pml-ink-stamp" aria-live="polite">
@@ -616,6 +709,19 @@ export function MoodExperience({
 
         <div className="pml-story-col">
           <div className={`pml-story-shield ${weather ? "has-weather" : ""}`}>
+            <p className="pml-hello" key={`${mood.slug}:${profile.name ?? ""}`} style={{ "--a": t.accent, "--a2": t.accent2 } as React.CSSProperties}>
+              <span className="pml-hello-hey">Hey</span>{" "}
+              <button className="pml-hello-name" onClick={() => askName()} title="Change what we call you">
+                {(profile.name ?? "you").split("").map((ch, i) => (
+                  <span key={i} style={{ animationDelay: `${260 + i * 55}ms` }}>
+                    {ch === " " ? "\u00a0" : ch}
+                  </span>
+                ))}
+              </button>
+              <span className="pml-hello-line" style={{ animationDelay: `${420 + (profile.name ?? "you").length * 55}ms` }}>
+                , {HELLO[mood.slug] ?? "this room is yours tonight."}
+              </span>
+            </p>
             {epigraph ?? (
             <figure className="pml-epigraph" key={mood.slug}>
               <span className="pml-epigraph-mark" aria-hidden="true">&ldquo;</span>

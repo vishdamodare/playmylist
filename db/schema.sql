@@ -39,3 +39,11 @@ CREATE TABLE IF NOT EXISTS media (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS media_owner_scope_idx ON media (owner_id, scope, created_at DESC);
+
+-- What a listener asked us to call them (keyed by the anonymous browser id; moves to user_id with sign-in).
+CREATE TABLE IF NOT EXISTS profiles (
+  owner_id uuid PRIMARY KEY,
+  display_name text NOT NULL CHECK (char_length(display_name) BETWEEN 1 AND 24),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);

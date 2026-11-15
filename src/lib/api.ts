@@ -41,7 +41,7 @@ const toStory = (r: StoryRow): Story & { mood: string } => ({
   title: r.title,
   content: r.content,
   tags: r.tags.length ? r.tags : ["reflection"],
-  author: r.mine ? "You" : r.author || "Anonymous",
+  author: r.author || (r.mine ? "You" : "Anonymous"),
   mine: r.mine,
 });
 
@@ -101,6 +101,16 @@ export const api = {
       await fetch("/api/media", { method: "POST", headers: headers(false), body: form })
     );
     return item;
+  },
+  async profile() {
+    const { name } = await ok<{ name: string | null }>(await fetch("/api/profile", { headers: headers(false) }));
+    return name;
+  },
+  async setName(name: string) {
+    const r = await ok<{ name: string }>(
+      await fetch("/api/profile", { method: "PUT", headers: headers(), body: JSON.stringify({ name }) })
+    );
+    return r.name;
   },
   async deleteMedia(id: string) {
     await ok<void>(await fetch(`/api/media/${id}`, { method: "DELETE", headers: headers(false) }));

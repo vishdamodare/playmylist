@@ -15,6 +15,18 @@ interface HomeSectionsProps {
 const MANIFESTO =
   "PlayMyList is for the songs you play on repeat when you can't say it out loud. Pick a feeling, press play, and read what strangers wrote at 2AM — then leave a story of your own.";
 
+type Excerpt = { mood: (typeof MOODS)[number]; title: string; line: string };
+/** Newest story per mood — fetched once per visit, so returning home doesn't re-render mid-transition. */
+let excerptsCache: Promise<Excerpt[]> | null = null;
+const loadExcerpts = () =>
+  (excerptsCache ??= api.stories().then((all) =>
+    MOODS.flatMap((m) => {
+      const s = all.find((x) => x.mood === m.slug);
+      return s ? [{ mood: m, title: s.title, line: s.content.split(/(?<=[.!?])\s/)[0] }] : [];
+    })
+  ).catch(() => ((excerptsCache = null), [])));
+let excerptsNow: Excerpt[] = [];
+
 const STATIONS = MOODS.map((mood, i) => ({ mood, freq: (88.1 + i * 3.6).toFixed(1) }));
 
 const totalSongs = Object.values(moodPlaylists).reduce(
@@ -100,17 +112,9 @@ export function HomeSections({ onSelectMood, onNavigate, onOpenPlaylist }: HomeS
   }, []);
 
   const words = MANIFESTO.split(" ");
-  // Newest story per mood, from the database.
-  const [excerpts, setExcerpts] = useState<{ mood: (typeof MOODS)[number]; title: string; line: string }[]>([]);
+  const [excerpts, setExcerpts] = useState<Excerpt[]>(excerptsNow);
   useEffect(() => {
-    api.stories().then((all) =>
-      setExcerpts(
-        MOODS.flatMap((m) => {
-          const s = all.find((x) => x.mood === m.slug);
-          return s ? [{ mood: m, title: s.title, line: s.content.split(/(?<=[.!?])\s/)[0] }] : [];
-        })
-      )
-    ).catch(() => {});
+    loadExcerpts().then((e) => setExcerpts((excerptsNow = e)));
   }, []);
 
   return (

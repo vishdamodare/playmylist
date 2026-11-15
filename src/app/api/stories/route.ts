@@ -32,7 +32,8 @@ export async function POST(req: Request) {
     ? body.tags.filter((t: unknown): t is string => typeof t === "string").map((t: string) => t.slice(0, 30)).slice(0, 5)
     : [];
   const { rows } = await db.query(
-    `INSERT INTO stories (mood, owner_id, title, content, tags) VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO stories (mood, owner_id, title, content, tags, author)
+     VALUES ($1, $2, $3, $4, $5, (SELECT display_name FROM profiles WHERE owner_id = $2))
      RETURNING id, mood, title, content, tags, author, created_at, true AS mine`,
     [body.mood, owner, title, content, tags]
   );
