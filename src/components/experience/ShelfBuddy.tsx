@@ -1,6 +1,36 @@
 "use client";
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
+
+const HELLO = "Hi, I'm ";
+const NAME = "Ava";
+const LINE2 = "I'll keep you company while you read.";
+const TOTAL = HELLO.length + NAME.length + LINE2.length;
+
+/** Ava types her intro once each time a shelf opens, then the bubble fades (timing in .pml-ava-bubble). */
+function useIntro() {
+  const [n, setN] = useState(0);
+  const [show, setShow] = useState(true);
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let i = reduce ? TOTAL : 0;
+    setN(i);
+    let tick: ReturnType<typeof setInterval>;
+    const start = setTimeout(() => {
+      tick = setInterval(() => {
+        setN(++i);
+        if (i >= TOTAL) clearInterval(tick);
+      }, 42);
+    }, 900);
+    const end = setTimeout(() => setShow(false), 7600);
+    return () => {
+      clearTimeout(start);
+      clearTimeout(end);
+      clearInterval(tick);
+    };
+  }, []);
+  return { n, show };
+}
 
 export type BuddyMode = "sit" | "look" | "jump";
 
@@ -26,6 +56,10 @@ export const ShelfBuddy = forwardRef<HTMLDivElement, ShelfBuddyProps>(function S
   ref
 ) {
   const excited = mode === "look" || mode === "jump";
+  const intro = useIntro();
+  const a = Math.min(intro.n, HELLO.length);
+  const b = Math.min(Math.max(intro.n - HELLO.length, 0), NAME.length);
+  const c = Math.max(intro.n - HELLO.length - NAME.length, 0);
   return (
     <div
       ref={ref}
@@ -36,6 +70,19 @@ export const ShelfBuddy = forwardRef<HTMLDivElement, ShelfBuddyProps>(function S
       onTransitionEnd={(e) => e.propertyName === "translate" && onArrive()}
       aria-hidden="true"
     >
+      {intro.show && !hidden && (
+        <div className="pml-ava-bubble">
+          <span className="pml-ava-l1">
+            {HELLO.slice(0, a)}
+            <b>{NAME.slice(0, b)}</b>
+            {b === NAME.length && <i className="pml-ava-heart">♥</i>}
+          </span>
+          <span className="pml-ava-l2">
+            {LINE2.slice(0, c)}
+            {intro.n < TOTAL && <span className="pml-ava-caret" />}
+          </span>
+        </div>
+      )}
       <div className="pml-buddy-flip" style={{ transform: facingLeft ? "scaleX(-1)" : undefined }}>
         <svg viewBox="0 0 120 150" className="pml-buddy-svg">
           <defs>
