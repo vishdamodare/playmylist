@@ -393,9 +393,9 @@ canvas#wave {
 }
 
 @media (max-width: 640px) {
-  .pml-newhome header { padding: 1.6rem 1.4rem; }
+  .pml-newhome header { padding: 1.4rem 1.25rem 0.6rem; flex-wrap: wrap; row-gap: 0.9rem; }
   .pml-newhome .wordmark { font-size: 0.76rem; letter-spacing: 0.3em; }
-  .pml-newhome nav { gap: 1.2rem; }
+  .pml-newhome nav { gap: 1.6rem; width: 100%; display: flex; justify-content: center; }
   .pml-newhome nav a { font-size: 0.78rem; }
   .pml-newhome .moods { gap: 0.55rem; }
   .pml-newhome .mood { font-size: 0.82rem; padding: 0.6rem 1.15rem; }
@@ -4653,8 +4653,8 @@ canvas#wave {
 .pml-library-section .pml-shelf-wrap { padding-top: 96px; }
 
 /* Playlists: mixtapes */
-.pml-tapes { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; }
-@media (max-width: 420px) { .pml-tapes { grid-template-columns: 1fr; } }
+.pml-tapes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); gap: 18px; }
+@media (max-width: 420px) { .pml-tapes { grid-template-columns: minmax(0, 1fr); } }
 .pml-tape {
   position: relative;
   display: flex;
@@ -4975,7 +4975,7 @@ canvas#wave {
 @media (max-width: 900px) {
   .pml-hs-stories { grid-template-columns: 1fr; }
   .pml-hs-cards { height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 26px 16px; padding-top: 10px; }
-  .pml-hs-card { position: relative; inset: auto !important; width: auto; }
+  .pml-hs-card { position: relative; inset: auto !important; width: auto; transform: rotate(var(--r)); } /* no parallax in a grid — it makes the notes overlap */
 }
 
 /* 5 · vinyl spinning with scroll */
@@ -5061,7 +5061,7 @@ canvas#wave {
   white-space: nowrap;
   font-family: 'Space Mono', monospace;
   font-weight: 700;
-  font-size: clamp(3.4rem, 15vw, 14rem);
+  font-size: clamp(2.4rem, 13vw, 14rem);
   letter-spacing: .04em;
   line-height: 1;
   color: transparent;
@@ -5296,6 +5296,10 @@ canvas#wave {
   .pml-radio-dial { height: 150px; overflow-x: auto; }
   .pml-station span { font-size: 14px; }
   .pml-radio-band { display: none; }
+}
+@media (max-width: 520px) {
+  .pml-station span { display: none; } /* names collide on a phone; the line under the dial names the station */
+  .pml-station b { font-size: 12px; }
 }
 
 /* ── Add your own song to a mood ── */
