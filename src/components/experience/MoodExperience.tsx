@@ -628,21 +628,23 @@ export function MoodExperience({
                       <span className="pml-pin" aria-hidden="true" />
                       <div className="pml-wall-header">
                         <strong className="pml-wall-title">{st.title}</strong>
-                        <div className="pml-wall-actions">
-                          <button className="pml-action-btn edit" onClick={() => handleStartEdit(st)} title="Edit story">
-                            <Pencil size={12} />
-                          </button>
-                          <button
-                            className="pml-action-btn delete"
-                            onClick={() => handleDeleteStory(st.id || "")}
-                            title="Delete story"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
+                        {isUserStory(st) && (
+                          <div className="pml-wall-actions">
+                            <button className="pml-action-btn edit" onClick={() => handleStartEdit(st)} title="Edit story">
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              className="pml-action-btn delete"
+                              onClick={() => handleDeleteStory(st.id || "")}
+                              title="Delete story"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <p className="pml-wall-text">{st.content}</p>
-                      <span className="pml-wall-meta">— you</span>
+                      <span className="pml-wall-meta">— {isUserStory(st) ? "you" : st.author}</span>
                     </div>
                   ))}
 
