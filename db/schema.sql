@@ -47,3 +47,37 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Songs a listener added to a mood or to My Playlist (mirrors their browser list so the admin can see it).
+CREATE TABLE IF NOT EXISTS songs (
+  owner_id   uuid NOT NULL,
+  scope      text NOT NULL,
+  video_id   text NOT NULL CHECK (video_id ~ '^[0-9A-Za-z_-]{11}$'),
+  title      text NOT NULL DEFAULT '' CHECK (char_length(title) <= 200),
+  author     text NOT NULL DEFAULT '' CHECK (char_length(author) <= 120),
+  position   integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (owner_id, scope, video_id)
+);
+CREATE INDEX IF NOT EXISTS songs_created_idx ON songs (created_at DESC);
+
+-- Songs an admin removed: the visitor's browser still has them, so syncing must not bring them back.
+CREATE TABLE IF NOT EXISTS removed_songs (
+  owner_id   uuid NOT NULL,
+  scope      text NOT NULL,
+  video_id   text NOT NULL,
+  removed_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (owner_id, scope, video_id)
+);
+
+-- Feedback visitors send from the "Feedback" tab.
+CREATE TABLE IF NOT EXISTS feedback (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id   uuid NOT NULL,
+  rating     smallint CHECK (rating BETWEEN 1 AND 4),
+  message    text NOT NULL CHECK (char_length(message) BETWEEN 1 AND 2000),
+  contact    text CHECK (contact IS NULL OR char_length(contact) <= 120),
+  page       text CHECK (page IS NULL OR char_length(page) <= 60),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS feedback_owner_created_idx ON feedback (owner_id, created_at DESC);

@@ -112,6 +112,13 @@ export const api = {
     );
     return r.name;
   },
+  /** Mirror this browser's song list for a mood / My Playlist to the server. */
+  async syncSongs(scope: string, songs: { id: string; title: string; author: string }[]) {
+    await ok<void>(await fetch("/api/songs", { method: "PUT", headers: headers(), body: JSON.stringify({ scope, songs }) }));
+  },
+  async sendFeedback(f: { message: string; rating?: number | null; contact?: string; page?: string }) {
+    await ok<void>(await fetch("/api/feedback", { method: "POST", headers: headers(), body: JSON.stringify(f) }));
+  },
   async deleteMedia(id: string) {
     await ok<void>(await fetch(`/api/media/${id}`, { method: "DELETE", headers: headers(false) }));
   },

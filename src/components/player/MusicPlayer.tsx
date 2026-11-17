@@ -26,6 +26,8 @@ export interface MusicPlayerProps {
   openAddSignal?: number;
   playerState: PlayerState;
   provider: MusicProvider;
+  /** which mood these songs belong to; shown as a little "Playing from" tag (clickable when onClick is set) */
+  from?: { label: string; onClick?: () => void };
 }
 
 /** Same key useYouTubePlayer stores in playerState.playlistId, so we can tell if this queue is loaded. */
@@ -58,6 +60,7 @@ export function MusicPlayer({
   openAddSignal = 0,
   playerState,
   provider,
+  from,
 }: MusicPlayerProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(playerState.volume);
@@ -157,9 +160,13 @@ export function MusicPlayer({
     let alive = true;
     setNowMeta(null);
     if (nowId) lookupSong(nowId).then((m) => alive && setNowMeta(m));
+    // warm the cache for the next two songs so Next shows its title instantly
+    const at = nowId ? queueIds.indexOf(nowId) : -1;
+    if (at >= 0) queueIds.slice(at + 1, at + 3).forEach((id) => lookupSong(id));
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowId]);
   const displayTitle = (isQueueLoaded && (playerState.currentVideoTitle || nowMeta?.title)) || fallbackTitle;
   const playError = isQueueLoaded ? playerState.error : null;
@@ -201,6 +208,34 @@ export function MusicPlayer({
       aria-label="Audio player"
       style={{ "--pa": accent, "--pa2": accent2, "--prog": `${progressPercent}%` } as React.CSSProperties}
     >
+      {from &&
+        (() => {
+          const inner = (
+            <>
+              <span className="pml-from-eq" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="pml-player-from-pre">Playing from</span>
+              <b className="pml-from-name">{from.label}</b>
+              {from.onClick && (
+                <span className="pml-from-arrow" aria-hidden="true">
+                  ›
+                </span>
+              )}
+            </>
+          );
+          return from.onClick ? (
+            <button key={from.label} className="pml-player-from" onClick={from.onClick} title={`Go back to ${from.label}`}>
+              {inner}
+            </button>
+          ) : (
+            <span key={from.label} className="pml-player-from">
+              {inner}
+            </span>
+          );
+        })()}
       {/* vinyl record: the song's cover art is the label, and it spins while playing */}
       <div className="pml-vinyl-wrap" aria-hidden="true">
       <div className="pml-vinyl">

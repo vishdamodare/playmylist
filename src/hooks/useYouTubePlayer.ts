@@ -87,6 +87,8 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
     }
     return true;
   };
+  // The video-id list currently loaded into YouTube; picking another song from it jumps instead of reloading.
+  const loadedKeyRef = useRef("");
   const pendingMediaRef = useRef<{
     id: string | string[];
     type: "playlist" | "video";
@@ -204,25 +206,37 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
     []
   );
 
-  const next = useCallback(() => {
-    if (!playerRef.current?.nextVideo) return;
-    try {
-      expectedIdRef.current = null;
-      playerRef.current.nextVideo();
-    } catch (err) {
-      console.error("Error moving to next video:", err);
-    }
+  /** Show the song we're switching to right away (title fills in from the lookup cache), before YouTube catches up. */
+  const announce = useCallback((videoId: string | undefined) => {
+    if (!videoId) return;
+    expectedIdRef.current = videoId;
+    expectedAtRef.current = Date.now();
+    setPlayerState((prev) =>
+      prev.currentVideoId === videoId
+        ? prev
+        : { ...prev, currentVideoId: videoId, currentVideoTitle: undefined, currentArtist: undefined, duration: 0, currentTime: 0, error: null, isBuffering: true }
+    );
   }, []);
 
-  const previous = useCallback(() => {
-    if (!playerRef.current?.previousVideo) return;
-    try {
-      expectedIdRef.current = null;
-      playerRef.current.previousVideo();
-    } catch (err) {
-      console.error("Error moving to previous video:", err);
-    }
-  }, []);
+  const step = useCallback(
+    (dir: 1 | -1) => {
+      const pl = playerRef.current;
+      if (!pl?.nextVideo) return;
+      try {
+        const list: string[] = pl.getPlaylist?.() ?? [];
+        const idx: number = pl.getPlaylistIndex?.() ?? -1;
+        const target = idx >= 0 ? idx + dir : -1;
+        if (target >= 0 && target < list.length) announce(list[target]);
+        if (dir === 1) pl.nextVideo();
+        else pl.previousVideo();
+      } catch (err) {
+        console.error("Error changing song:", err);
+      }
+    },
+    [announce]
+  );
+  const next = useCallback(() => step(1), [step]);
+  const previous = useCallback(() => step(-1), [step]);
 
   // Initialize YT Player
   useEffect(() => {
@@ -306,7 +320,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
               } else if (state === -1) {
                 setPlayerState((prev) => ({
                   ...prev,
-                  isBuffering: false,
+                  isBuffering: expectedIdRef.current ? prev.isBuffering : false, // keep the spinner while our pick loads
                 }));
               } else if (state === 5) {
                 setPlayerState((prev) => ({
@@ -381,18 +395,33 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
         if (videoIds.length === 0) return;
         const index = Math.min(Math.max(0, startIndex), videoIds.length - 1);
+        const key = videoIds.join(",");
+
+        // Same list already in the player: jump to the song instead of reloading the whole playlist (much faster).
+        if (key === loadedKeyRef.current && playerRef.current?.playVideoAt) {
+          announce(videoIds[index]);
+          try {
+            playerRef.current.unMute?.();
+            playerRef.current.playVideoAt(index);
+            return;
+          } catch {
+            // fall through to a full load
+          }
+        }
+        loadedKeyRef.current = key;
 
         expectedIdRef.current = videoIds[index];
         expectedAtRef.current = Date.now();
         setPlayerState((prev) => ({
           ...prev,
-          playlistId: videoIds.join(","),
+          playlistId: key,
           currentVideoId: videoIds[index],
           currentVideoTitle: undefined,
           currentArtist: undefined,
           duration: 0,
           currentTime: 0,
           error: null,
+          isBuffering: autoplay, // spinner from the click, not only once YouTube starts buffering
         }));
 
         if (!playerRef.current || !playerRef.current.getPlayerState) {
@@ -411,6 +440,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
       const playlistId = parsed.id;
       const type = parsed.type || defaultType;
+      loadedKeyRef.current = "";
 
       setPlayerState((prev) => ({
         ...prev,
@@ -426,7 +456,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
       executeLoad(playlistId, type, autoplay);
     },
-    [executeLoad]
+    [executeLoad, announce]
   );
 
   const play = useCallback(() => {

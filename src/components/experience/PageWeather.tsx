@@ -3,6 +3,7 @@
 import React from "react";
 import { PageRain } from "@/components/experience/PageRain";
 import { WeatherCanvas } from "@/components/experience/WeatherCanvas";
+import { SnowCanvas } from "@/components/experience/SnowCanvas";
 
 export type Weather = "rain" | "storm" | "wind" | "snow" | "sun" | "night";
 
@@ -21,25 +22,7 @@ export function PageWeather({ kind, rainVideoSrc }: { kind: Weather; rainVideoSr
     return (
       <div className="pml-page-weather pml-wx pml-wx-snow" aria-hidden="true">
         <div className="pml-snow-tint" />
-        {range(90).map((i) => {
-          const depth = seeded(i, 3); // 0 = far, 1 = near
-          const size = 2 + depth * 6;
-          return (
-            <span
-              key={i}
-              className="pml-flake"
-              style={{
-                left: `${seeded(i, 7) * 100}%`,
-                width: size,
-                height: size,
-                opacity: 0.35 + depth * 0.6,
-                filter: depth < 0.3 ? "blur(1px)" : undefined,
-                animationDuration: `${16 - depth * 8}s, ${3 + seeded(i, 11) * 3}s`,
-                animationDelay: `${-seeded(i, 13) * 16}s, ${-seeded(i, 17) * 4}s`,
-              }}
-            />
-          );
-        })}
+        <SnowCanvas />
         <div className="pml-frost" />
       </div>
     );

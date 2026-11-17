@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Sun, Moon } from "lucide-react";
 import { HomeSections } from "@/components/home/HomeSections";
 import { startSky } from "@/components/home/sky";
+import { openFeedback } from "@/components/Feedback";
 
 interface HomeProps {
   onSelectMood: (slug: string) => void;
@@ -238,6 +239,15 @@ export function Home({ onSelectMood, onOpenPlaylist, onNavigate, skyMode, onSkyM
               {label}
             </a>
           ))}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              openFeedback();
+            }}
+          >
+            Feedback
+          </a>
         </nav>
       </header>
 

@@ -1,15 +1,28 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SITE_URL, SITE_DESCRIPTION } from "@/lib/site";
+
+const TITLE = "PlayMyList: Mood Playlists & Stories for Every Feeling";
 
 export const metadata: Metadata = {
-  title: "PLAYMYLIST — What does your heart sound like tonight?",
-  description:
-    "Music, stories, visuals, one feeling. Discover mood-driven music playlists and stories.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: TITLE, template: "%s | PlayMyList" },
+  description: SITE_DESCRIPTION,
+  applicationName: "PlayMyList",
+  authors: [{ name: "Vish Damodare", url: "https://instagram.com/vish_damodare" }],
+  creator: "Vish Damodare",
+  keywords: ["mood playlist", "songs for my mood", "love songs", "sad songs", "late night songs", "long distance songs", "anonymous stories"],
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", siteName: "PlayMyList", title: TITLE, description: SITE_DESCRIPTION, url: "/", locale: "en_US" },
+  twitter: { card: "summary_large_image", title: TITLE, description: SITE_DESCRIPTION },
+  robots: { index: true, follow: true },
+  verification: { google: "IQ4vfKuj7dIfGyBZ-FgXiHI8dbSzREeS2BrIS5jxKsQ" }, // Google Search Console
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#0d0a1a",
 };
 
 export default function RootLayout({

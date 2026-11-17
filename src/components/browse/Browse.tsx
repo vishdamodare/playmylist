@@ -9,6 +9,7 @@ import { storage } from "@/lib/storage";
 import { api } from "@/lib/api";
 import { moodQueue } from "@/lib/moodSongs";
 import { StoryShelf } from "@/components/experience/StoryShelf";
+import { openFeedback } from "@/components/Feedback";
 
 export type BrowseView = "discover" | "library" | "playlists";
 
@@ -56,6 +57,7 @@ function BrowseHeader({
             {label}
           </button>
         ))}
+        <button onClick={openFeedback}>Feedback</button>
       </nav>
     </header>
   );

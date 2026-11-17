@@ -122,8 +122,8 @@ canvas#wave {
   z-index: 2;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 65% 48% at 50% 38%, rgba(6,4,12,0.05) 0%, rgba(6,4,12,0.55) 78%),
-    radial-gradient(ellipse 130% 85% at 50% 105%, rgba(6,4,12,0.7) 0%, rgba(6,4,12,0) 55%);
+    radial-gradient(ellipse 65% 48% at 50% 38%, rgba(6,4,12,0) 0%, rgba(6,4,12,0.3) 82%),
+    radial-gradient(ellipse 130% 85% at 50% 105%, rgba(6,4,12,0.16) 0%, rgba(6,4,12,0) 55%); /* light touch: the night city should stay visible */
   transition: background 1.2s ease;
 }
 
@@ -2929,7 +2929,7 @@ canvas#wave {
 .pml-buddy-svg * { transform-box: view-box; }
 
 /* default pose: sitting on the edge, legs dangling, smiling */
-.bd-legs-stand, .bd-eyes-happy, .bd-mouth-open, .bd-phones, .bd-notes { display: none; }
+.bd-legs-stand, .bd-eyes-happy, .bd-mouth-open, .bd-phones, .bd-notes, .bd-phone, .bd-phone-wire { display: none; }
 .bd-upper { transform: translateY(10px); transition: transform .3s ease; }
 .bd-shadow { opacity: .6; }
 .bd-leg.l { transform-origin: 49px 122px; }
@@ -2959,7 +2959,7 @@ canvas#wave {
 .pml-buddy.is-jump .bd-arm.r { transform: rotate(-70deg); }
 
 /* music: headphones on, eyes closed happily, head bobbing, notes floating */
-.pml-buddy.is-music .bd-phones, .pml-buddy.is-music .bd-notes { display: inline; }
+.pml-buddy.is-music .bd-phones, .pml-buddy.is-music .bd-notes, .pml-buddy.is-music .bd-phone, .pml-buddy.is-music .bd-phone-wire { display: inline; }
 .pml-buddy.is-music.is-sit .bd-eyes-open { display: none; }
 .pml-buddy.is-music.is-sit .bd-eyes-happy { display: inline; }
 
@@ -3106,9 +3106,11 @@ canvas#wave {
 .pml-wx > * { position: absolute; pointer-events: none; }
 
 /* snow */
-.pml-snow-tint {
+.pml-snow-tint { /* cold moonlight from above instead of a flat grey wash */
   inset: 0;
-  background: linear-gradient(180deg, rgba(190,212,245,.18), rgba(225,238,255,.06) 70%, rgba(240,246,255,.14));
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(190, 215, 255, .22), transparent 70%),
+    linear-gradient(180deg, rgba(120, 150, 220, .10), rgba(160, 190, 240, .03) 55%, rgba(210, 228, 255, .10));
   mix-blend-mode: screen;
 }
 .pml-flake {
@@ -3127,11 +3129,9 @@ canvas#wave {
 }
 @keyframes pmlSnowFall { from { translate: 0 -10vh; } to { translate: 0 112vh; } }
 @keyframes pmlSnowSway { from { transform: translateX(-22px) rotate(-20deg); } to { transform: translateX(22px) rotate(20deg); } }
-.pml-frost {
+.pml-frost { /* frosted window edges */
   inset: 0;
-  background:
-    radial-gradient(ellipse 120% 95% at 50% 45%, transparent 60%, rgba(225,238,255,.28) 100%),
-    linear-gradient(0deg, rgba(240,246,255,.16), transparent 18%);
+  background: radial-gradient(ellipse 125% 100% at 50% 45%, transparent 62%, rgba(215, 232, 255, .22) 92%, rgba(235, 244, 255, .34) 100%);
 }
 
 /* sunshine */
@@ -5508,6 +5508,8 @@ canvas#wave {
 .pml-newhome .eyebrow { transition: color 1.2s ease; }
 .pml-newhome.is-morning .eyebrow { color: rgba(255,240,225,.78); text-shadow: 0 1px 10px rgba(80,20,40,.35); }
 .pml-newhome.is-morning .veil { opacity: 0; }
+.pml-newhome.is-morning .explore { color: #fff3e6; text-shadow: 0 1px 12px rgba(90,20,40,.45); }
+.pml-newhome.is-morning .pml-make-playlist { color: #fff3e6; border-color: rgba(255,240,225,.55); background: rgba(70,20,40,.22); }
 
 /* ══════════ SITE-WIDE MORNING ══════════ */
 /* mood pages: background from the mood's theme vars (set inline) */
@@ -5918,3 +5920,407 @@ canvas#wave {
 @keyframes pmlHelloUp { from { opacity: 0; transform: translateY(8px); } }
 @keyframes pmlLetterIn { from { opacity: 0; transform: translateY(14px) rotate(-8deg) scale(.6); } }
 @keyframes pmlShimmer { to { background-position: -200% 0; } }
+
+/* footer signature: a handwritten letter from Vish, sealed with a heart */
+.pml-hs-sign { max-width: 460px; margin: clamp(48px, 7vw, 64px) auto 0; padding: 0 24px; text-align: center; }
+.pml-hs-letter {
+  position: relative;
+  margin: 0;
+  padding: 30px 30px 26px;
+  text-align: left;
+  color: #2b211b;
+  border-radius: 3px;
+  background: #fbf7ee repeating-linear-gradient(180deg, transparent 0 29px, rgba(80, 120, 190, .16) 29px 30px);
+  background-position: 0 22px;
+  box-shadow: 0 26px 50px -18px rgba(0, 0, 0, .85), 0 0 0 1px rgba(0, 0, 0, .04);
+  transform: rotate(-1.6deg);
+  transition: transform .5s cubic-bezier(.22, .61, .36, 1);
+}
+.pml-hs-letter:hover { transform: rotate(0deg) translateY(-4px); }
+.pml-hs-washi {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 92px;
+  height: 24px;
+  transform: translateX(-50%) rotate(2deg);
+  background: rgba(214, 178, 94, .55);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
+}
+.pml-hs-letter blockquote {
+  margin: 0;
+  font-family: 'Caveat', cursive;
+  font-size: clamp(1.35rem, 4.6vw, 1.6rem);
+  line-height: 30px;
+  color: #2b2350;
+}
+.pml-hs-letter figcaption {
+  margin-top: 12px;
+  text-align: right;
+  font-family: 'Caveat', cursive;
+  font-size: 1.3rem;
+  color: #5a4a6a;
+  line-height: 30px;
+}
+.pml-hs-name {
+  position: relative;
+  display: inline-block;
+  margin-left: .35em;
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 2.1rem;
+  color: #2b2350;
+}
+.pml-hs-name svg { position: absolute; left: -6%; bottom: -.15em; width: 112%; height: .45em; overflow: visible; }
+.pml-hs-name path { fill: none; stroke: #c2405f; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 130; stroke-dashoffset: 0; }
+.pml-hs-seal {
+  position: absolute;
+  right: -14px;
+  bottom: -16px;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: #ffd9df;
+  background: radial-gradient(circle at 35% 30%, #e0526f, #a3203c 70%);
+  box-shadow: 0 6px 14px -4px rgba(120, 10, 40, .7), inset 0 -3px 6px rgba(0, 0, 0, .25), inset 0 2px 3px rgba(255, 255, 255, .25);
+}
+.pml-hs-seal::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; border: 1.5px dashed rgba(255, 210, 220, .45); }
+.pml-hs-by {
+  margin: 30px 0 0;
+  font-family: 'Special Elite', 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--fg-faint, rgba(243, 236, 228, .55));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pml-hs-seal svg { animation: pml-heartbeat 1.6s ease-in-out infinite; }
+  .pml-hs-name path { stroke-dashoffset: 130; animation: pml-underline 1.2s .7s cubic-bezier(.6, 0, .3, 1) forwards; }
+  .pml-hs-sign[data-reveal]:not(.is-in) .pml-hs-name path { animation-play-state: paused; }
+}
+@keyframes pml-heartbeat {
+  0%, 40%, 100% { transform: scale(1); }
+  12% { transform: scale(1.28); }
+  24% { transform: scale(1.05); }
+  32% { transform: scale(1.22); }
+}
+@keyframes pml-underline { to { stroke-dashoffset: 0; } }
+@media (max-width: 520px) {
+  .pml-hs-sign { margin-top: 84px; }
+  .pml-hs-by { font-size: 10px; letter-spacing: .1em; }
+  .pml-hs-seal { right: -6px; }
+}
+
+/* ── Ava's first-visit tour ─────────────────────────────── */
+.pml-tour { position: fixed; inset: 0; z-index: 10000; pointer-events: auto; }
+.pml-tour-dim { position: absolute; inset: 0; background: rgba(10, 6, 22, .62); backdrop-filter: blur(2px); animation: pml-tour-fade .4s ease both; }
+.pml-tour-spot {
+  position: fixed;
+  border-radius: 18px;
+  box-shadow: 0 0 0 2px var(--tour), 0 0 28px 4px color-mix(in srgb, var(--tour) 55%, transparent);
+  transition: top .45s cubic-bezier(.22, .61, .36, 1), left .45s cubic-bezier(.22, .61, .36, 1), width .45s cubic-bezier(.22, .61, .36, 1), height .45s cubic-bezier(.22, .61, .36, 1);
+  pointer-events: none;
+}
+.pml-tour-mask { position: fixed; inset: 0; width: 100%; height: 100%; animation: pml-tour-fade .35s ease both; }
+.pml-tour-hole { transition: x .45s cubic-bezier(.22, .61, .36, 1), y .45s cubic-bezier(.22, .61, .36, 1), width .45s cubic-bezier(.22, .61, .36, 1), height .45s cubic-bezier(.22, .61, .36, 1); }
+.pml-tour-card {
+  position: fixed;
+  padding: 18px 18px 16px;
+  border-radius: 20px;
+  color: #2b2350;
+  background: #fffaf3;
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .6) inset;
+  animation: pml-tour-pop .45s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+.pml-tour-card.is-center { left: 50%; top: 50%; width: min(360px, calc(100vw - 32px)); translate: -50% -50%; }
+.pml-tour-card::after { /* tiny hearts drifting off the card */
+  content: "♥  ♡  ♥";
+  position: absolute;
+  top: -22px;
+  right: 18px;
+  font-size: 13px;
+  letter-spacing: .3em;
+  color: var(--tour);
+  opacity: .9;
+  animation: pml-tour-float 3.2s ease-in-out infinite;
+}
+.pml-tour-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.pml-tour-ava { width: 58px; height: 62px; flex: none; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .18)); animation: pml-tour-bob 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+.pml-tour-ahoge { transform-origin: 62px 18px; animation: pml-tour-ahoge 1.8s ease-in-out infinite; }
+.pml-tour-eyes { transform-origin: 60px 60px; animation: pml-tour-blink 4s infinite; }
+.pml-tour-head h2 { margin: 0; font-family: 'Caveat', cursive; font-weight: 600; font-size: 1.75rem; line-height: 1; color: #2b2350; }
+.pml-tour-count { font-family: 'Special Elite', monospace; font-size: 10px; letter-spacing: .2em; color: #9a8fb3; }
+.pml-tour-text { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: #4a3f66; min-height: 3em; }
+.pml-tour-ghost { visibility: hidden; } /* reserves space so the card doesn't grow while typing */
+.pml-tour-dots { display: flex; gap: 6px; margin-bottom: 14px; }
+.pml-tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: #e6ddf0; transition: all .3s; }
+.pml-tour-dots i.done { background: color-mix(in srgb, var(--tour) 45%, #e6ddf0); }
+.pml-tour-dots i.on { width: 20px; border-radius: 4px; background: var(--tour); }
+.pml-tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pml-tour-nav { display: flex; gap: 8px; }
+.pml-tour-actions button { font: 500 14px/1 Inter, system-ui, sans-serif; border-radius: 999px; cursor: pointer; transition: transform .15s, background .2s; }
+.pml-tour-actions button:active { transform: scale(.95); }
+.pml-tour-skip { background: none; border: none; padding: 8px 4px; color: #9a8fb3; }
+.pml-tour-skip:hover { color: #4a3f66; }
+.pml-tour-back { width: 38px; height: 38px; background: #f1ebf7; border: none; color: #4a3f66; }
+.pml-tour-next {
+  padding: 11px 18px;
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, var(--tour), color-mix(in srgb, var(--tour) 60%, #ff7a9a));
+  box-shadow: 0 8px 18px -8px var(--tour);
+}
+.pml-tour-next:hover { transform: translateY(-1px); }
+.pml-tour-next:focus-visible, .pml-tour-back:focus-visible, .pml-tour-skip:focus-visible { outline: 2px solid var(--tour); outline-offset: 2px; }
+@keyframes pml-tour-fade { from { opacity: 0; } }
+@keyframes pml-tour-pop { from { opacity: 0; transform: translateY(10px) scale(.94); } }
+@keyframes pml-tour-bob { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-2px); } }
+@keyframes pml-tour-ahoge { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(10deg); } }
+@keyframes pml-tour-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes pml-tour-float { 0%, 100% { transform: translateY(0); opacity: .9; } 50% { transform: translateY(-6px); opacity: .5; } }
+@media (prefers-reduced-motion: reduce) {
+  .pml-tour-ava, .pml-tour-ahoge, .pml-tour-eyes, .pml-tour-card, .pml-tour-card::after, .pml-tour-dim, .pml-tour-mask { animation: none; }
+  .pml-tour-spot, .pml-tour-hole { transition: none; }
+}
+
+/* ── Feedback tab + dialog ─────────────────────────────── */
+.pml-fb-btn { /* mood top bar: sits beside "Add your song" */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px 7px 11px;
+  border: 1px solid rgba(255, 143, 163, .45);
+  border-radius: 999px;
+  background: rgba(255, 122, 154, .1);
+  color: #ffe3ea;
+  font-size: 12.5px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background .25s ease, border-color .25s ease, transform .25s ease;
+}
+.pml-fb-btn svg { color: #ff8fa3; }
+.pml-fb-btn:hover { background: rgba(255, 122, 154, .2); border-color: rgba(255, 143, 163, .8); transform: translateY(-1px); }
+.pml-fb-btn:focus-visible { outline: 2px solid #ff8fa3; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .pml-fb-btn { padding: 8px; }
+  .pml-fb-btn span { display: none; } /* icon only on phones */
+}
+
+.pml-fb {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 26px 24px 22px;
+  border: none;
+  border-radius: 22px;
+  color: #2b2350;
+  background: #fffaf3;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .75);
+  font-family: Inter, system-ui, sans-serif;
+}
+.pml-fb[open] { animation: pml-fb-in .4s cubic-bezier(.34, 1.56, .64, 1) both; }
+.pml-fb::backdrop { background: rgba(10, 6, 22, .62); backdrop-filter: blur(3px); }
+.pml-fb h2 { margin: 0 0 4px; font-family: 'Caveat', cursive; font-weight: 600; font-size: 2rem; line-height: 1.1; color: #2b2350; }
+.pml-fb-sub { margin: 0 0 16px; font-size: 14px; line-height: 1.45; color: #6a5f86; }
+.pml-fb-x { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; display: grid; place-items: center; border: none; border-radius: 50%; background: #f1ebf7; color: #4a3f66; cursor: pointer; }
+.pml-fb-faces { display: flex; gap: 10px; margin: 0 0 16px; padding: 0; border: none; }
+.pml-fb-faces legend { margin-bottom: 8px; font-size: 13px; font-weight: 500; color: #4a3f66; }
+.pml-fb-faces button {
+  width: 52px; height: 52px; border-radius: 16px; border: 2px solid transparent; background: #f4eefa;
+  font-size: 26px; line-height: 1; cursor: pointer; transition: transform .2s cubic-bezier(.34, 1.56, .64, 1), border-color .2s, background .2s;
+}
+.pml-fb-faces button:hover { transform: translateY(-3px) scale(1.06); }
+.pml-fb-faces button.on { border-color: #ff6b8b; background: #ffe9ee; transform: scale(1.12); }
+.pml-fb-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; font-size: 13px; font-weight: 500; color: #4a3f66; }
+.pml-fb-field i { font-weight: 400; color: #9a8fb3; }
+.pml-fb-field textarea, .pml-fb-field input {
+  width: 100%; padding: 11px 13px; border: 1.5px solid #e4dcef; border-radius: 12px; background: #fff;
+  font: 400 15px/1.45 Inter, system-ui, sans-serif; color: #2b2350; resize: vertical; box-sizing: border-box;
+}
+.pml-fb-field textarea:focus, .pml-fb-field input:focus { outline: none; border-color: #b48cf0; box-shadow: 0 0 0 3px rgba(180, 140, 240, .2); }
+.pml-fb-error { margin: -4px 0 12px; font-size: 13px; color: #c2405f; }
+.pml-fb-send {
+  width: 100%; padding: 13px 18px; border: none; border-radius: 999px; cursor: pointer;
+  font: 600 15px/1 Inter, system-ui, sans-serif; color: #fff;
+  background: linear-gradient(135deg, #b48cf0, #ff7a9a); box-shadow: 0 10px 22px -10px #ff7a9a;
+  transition: transform .15s, opacity .2s;
+}
+.pml-fb-send:hover:not(:disabled) { transform: translateY(-1px); }
+.pml-fb-send:disabled { opacity: .5; cursor: not-allowed; }
+.pml-fb-thanks { text-align: center; padding: 10px 4px 2px; }
+.pml-fb-thanks p { margin: 6px 0 20px; color: #6a5f86; line-height: 1.5; }
+.pml-fb-heart { display: inline-block; font-size: 44px; color: #ff6b8b; filter: drop-shadow(0 4px 10px rgba(255, 107, 139, .5)); }
+@media (prefers-reduced-motion: no-preference) {
+  .pml-fb-heart { animation: pml-heartbeat 1.6s ease-in-out infinite; }
+}
+@keyframes pml-fb-in { from { opacity: 0; transform: translateY(14px) scale(.95); } }
+
+/* Vish's Instagram + email links (feedback dialog + footer) */
+.pml-fb-direct { margin: 16px 0 8px; text-align: center; font-size: 12.5px; color: #9a8fb3; }
+.pml-vish-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.pml-vish-links a {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+  font: 500 13px/1 Inter, system-ui, sans-serif; text-decoration: none;
+  color: #4a3f66; background: #f4eefa; border: 1px solid #e8dff3;
+  transition: transform .2s ease, background .2s ease, color .2s ease;
+}
+.pml-vish-links a:hover { transform: translateY(-1px); background: #ffe9ee; color: #c2405f; }
+.pml-vish-links a:first-child svg { color: #e1306c; }
+.pml-vish-links a:last-child svg { color: #8a6fd9; }
+.pml-vish-links a:focus-visible { outline: 2px solid #ff8fa3; outline-offset: 2px; }
+.pml-vish-links span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 62vw; }
+.pml-vish-links.is-dark { margin-top: 14px; }
+.pml-vish-links.is-dark a { color: #f3ece4; background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .14); text-transform: none; letter-spacing: 0; }
+.pml-vish-links.is-dark a:hover { color: #fff; background: rgba(255, 122, 154, .18); border-color: rgba(255, 143, 163, .5); }
+.pml-vish-links.in-form { margin-top: 14px; }
+
+/* Ava's phone: little equalizer + soft screen glow while music plays */
+.bd-eq { transform-box: fill-box; transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .pml-buddy.is-music .bd-eq { animation: bdEq .9s ease-in-out infinite alternate; }
+  .pml-buddy.is-music .bd-eq.b2 { animation-duration: .6s; animation-delay: -.3s; }
+  .pml-buddy.is-music .bd-eq.b3 { animation-duration: .75s; animation-delay: -.5s; }
+  .pml-buddy.is-music .bd-phone-glow { animation: bdGlow 1.6s ease-in-out infinite alternate; }
+}
+@keyframes bdEq { from { transform: scaleY(.35); } to { transform: scaleY(1.15); } }
+@keyframes bdGlow { from { opacity: .15; } to { opacity: .45; } }
+
+/* ── Ava dresses for the weather ─────────────────────────── */
+.bd-wx, .bd-scarf-hang, .bd-scarf-fly { display: none; }
+.pml-buddy.wx-rain .bd-umbrella, .pml-buddy.wx-storm .bd-umbrella,
+.pml-buddy.wx-rain .bd-raincoat, .pml-buddy.wx-storm .bd-raincoat, .pml-buddy.wx-storm .bd-rainhat,
+.pml-buddy.wx-sun .bd-icecream,
+.pml-buddy.wx-snow .bd-beanie, .pml-buddy.wx-snow .bd-scarf, .pml-buddy.wx-snow .bd-scarf-hang, .pml-buddy.wx-snow .bd-mittens,
+.pml-buddy.wx-wind .bd-scarf, .pml-buddy.wx-wind .bd-scarf-fly,
+.pml-buddy.wx-sun .bd-sunhat, .pml-buddy.wx-sun .bd-shades,
+.pml-buddy.wx-night .bd-nightcap,
+.pml-buddy.wx-night:not(.is-music) .bd-zz { display: inline; }
+/* hats and the hood hide her little hair sprout */
+.pml-buddy:is(.wx-storm, .wx-snow, .wx-sun, .wx-night) .bd-ahoge { display: none; }
+/* rain / storm: yellow raincoat + rain boots */
+.pml-buddy:is(.wx-rain, .wx-storm) .bd-coat { fill: #ffd23f; }
+.pml-buddy:is(.wx-rain, .wx-storm) .bd-sleeve { stroke: #ffd23f; }
+.pml-buddy:is(.wx-rain, .wx-storm) .bd-shoe { fill: #ffd23f; }
+/* mitten instead of a bare thumb on the phone */
+.pml-buddy.wx-snow .bd-thumb { fill: #e2516e; }
+@media (prefers-reduced-motion: no-preference) {
+  .pml-buddy.wx-storm .bd-umbrella-sway { transform-origin: 37px 114px; animation: bdUmbrellaWobble 1.1s ease-in-out infinite alternate; }
+  .pml-buddy.wx-rain .bd-umbrella-sway { transform-origin: 37px 114px; animation: bdUmbrellaSway 3s ease-in-out infinite alternate; }
+  .bd-drop { animation: bdDrop 1.1s linear infinite; opacity: 0; }
+  .pml-buddy.wx-storm .bd-canopy { transform-origin: 60px -6px; animation: bdInsideOut 4.2s ease-in-out infinite; }
+  .bd-drop.d2 { animation-delay: -.4s; }
+  .bd-drop.d3 { animation-delay: -.75s; }
+  .pml-buddy.wx-storm .bd-drop { animation-duration: .7s; }
+  .pml-buddy.wx-wind .bd-scarf-fly { transform-origin: 47px 92px; animation: bdScarfFlap .45s ease-in-out infinite alternate; }
+  .pml-buddy.wx-wind .bd-ahoge { animation: bdAhogeWind .3s ease-in-out infinite alternate; transform-origin: 62px 18px; }
+  .bd-z { animation: bdZ 2.6s ease-out infinite; opacity: 0; }
+  .bd-z.z2 { animation-delay: -1.3s; }
+}
+@keyframes bdUmbrellaSway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes bdUmbrellaWobble { 0% { transform: rotate(-9deg); } 60% { transform: rotate(5deg); } 100% { transform: rotate(-4deg); } }
+@keyframes bdDrop { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 80% { transform: translateY(38px); opacity: 1; } 100% { transform: translateY(40px) scaleX(1.8); opacity: 0; } }
+@keyframes bdInsideOut { 0%, 68% { transform: scaleY(1); } 74%, 84% { transform: scaleY(-.75); } 90%, 100% { transform: scaleY(1); } } /* a gust flips it inside-out */
+@keyframes bdScarfFlap { from { transform: skewY(-6deg) scaleX(.94); } to { transform: skewY(5deg) scaleX(1.04); } }
+@keyframes bdAhogeWind { from { transform: rotate(-18deg); } to { transform: rotate(6deg); } }
+@keyframes bdZ { 0% { transform: translate(0, 6px); opacity: 0; } 30% { opacity: .9; } 100% { transform: translate(6px, -10px); opacity: 0; } }
+
+/* ══════════ PHONE FIXES ══════════ */
+/* greeting: let "…, you're less alone than it feels" wrap like a sentence, not jump down as one block */
+.pml-hello-line { display: inline; }
+@media (prefers-reduced-motion: no-preference) {
+  .pml-hello-line { display: inline; animation: pmlFadeIn .8s ease backwards; }
+}
+
+@media (max-width: 640px) {
+  /* player: the progress bar gives up space so the song-list button stays inside the bar */
+  .pml-player-v2 .pml-progress-wrap, .pml-player-v2 .pml-progress-track { min-width: 0; }
+  .pml-player-v2 .pml-progress-wrap { flex: 1 1 0; }
+  .pml-player.pml-player-v2 { gap: 8px; padding-right: 10px; }
+  .pml-player-v2 .pml-player-controls { gap: 4px; }
+  .pml-player-v2 .pml-skip { padding: 10px; }            /* ~36px tap area */
+  .pml-queue-btn { width: 40px; height: 40px; }
+
+  /* Discover / Stories / Playlists header: links get their own row and can wrap */
+  .pml-browse-head nav { grid-column: 1 / -1; justify-self: stretch; flex-wrap: wrap; justify-content: center; row-gap: 4px; }
+  .pml-browse-head nav button { padding: 10px 7px; font-size: 13px; }
+  .pml-browse-head nav { column-gap: 2px; }
+
+  /* Stories page: room above each shelf so Ava's hello bubble doesn't cover the shelf title */
+  .pml-library-section .pml-shelf-wrap { padding-top: 175px; }
+
+  /* bigger tap areas without changing how things look */
+  .pml-newhome header nav a { padding: 12px 4px; margin: -12px -4px; }
+  .pml-newhome .explore { padding: 10px 6px; margin-top: calc(2.6rem - 10px); }
+  .pml-hs-foot-row nav button { padding: 12px 4px; margin: -12px -4px; }
+  .pml-sky-btn { min-height: 36px; }
+  .pml-weather-btn { min-width: 34px; min-height: 34px; justify-content: center; }
+}
+
+/* "Playing from · <mood>" — a little jewel riding on the top edge of the player */
+.pml-player-from {
+  position: absolute;
+  top: 0;
+  left: 34px;
+  transform: translateY(-58%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 60px);
+  padding: 5px 14px 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(34, 24, 34, .96), rgba(18, 13, 20, .96)) padding-box,
+    linear-gradient(100deg, var(--pa), var(--pa2), rgba(255, 255, 255, .55), var(--pa2), var(--pa)) border-box;
+  background-size: 100% 100%, 300% 100%;
+  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--pa) 70%, transparent), 0 2px 6px rgba(0, 0, 0, .45);
+  white-space: nowrap;
+  overflow: hidden;
+  font: inherit;
+  color: inherit;
+}
+.pml-player-from-pre {
+  font: 500 9.5px/1 'Space Mono', monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(246, 239, 228, .55);
+}
+.pml-from-name {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: .01em;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--pa) 70%, #fff), var(--pa2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pml-from-eq { display: inline-flex; align-items: flex-end; gap: 1.5px; height: 10px; flex: none; }
+.pml-from-eq i { width: 2px; height: 40%; border-radius: 1px; background: var(--pa); box-shadow: 0 0 6px var(--pa); }
+.pml-from-eq i:nth-child(2) { height: 75%; }
+.pml-from-eq i:nth-child(3) { height: 55%; }
+.pml-from-arrow { color: var(--pa); font-size: 14px; line-height: 1; transition: transform .25s ease; }
+button.pml-player-from { cursor: pointer; transition: transform .25s ease, box-shadow .25s ease; }
+button.pml-player-from:hover { transform: translateY(-62%); box-shadow: 0 10px 26px -8px color-mix(in srgb, var(--pa) 85%, transparent), 0 2px 6px rgba(0, 0, 0, .45); }
+button.pml-player-from:hover .pml-from-arrow { transform: translateX(3px); }
+button.pml-player-from:focus-visible { outline: 2px solid var(--pa); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .pml-player-from { animation: pmlFromIn .6s cubic-bezier(.34, 1.56, .64, 1) both, pmlFromShimmer 5s linear infinite; }
+  .pml-player-v2.is-playing .pml-from-eq i { animation: pmlFromEq .8s ease-in-out infinite alternate; }
+  .pml-player-v2.is-playing .pml-from-eq i:nth-child(2) { animation-duration: .55s; animation-delay: -.2s; }
+  .pml-player-v2.is-playing .pml-from-eq i:nth-child(3) { animation-duration: .7s; animation-delay: -.4s; }
+}
+@keyframes pmlFromIn { from { opacity: 0; transform: translateY(-20%) scale(.9); } }
+@keyframes pmlFromShimmer { to { background-position: 0 0, 300% 0; } }
+@keyframes pmlFromEq { from { height: 25%; } to { height: 100%; } }
+.is-mini .pml-player-from { left: auto; right: 14px; max-width: none; } /* hang off the right edge so it can grow left */
+@media (max-width: 640px) {
+  button.pml-player-from { padding: 7px 14px 7px 11px; } /* easier to tap */
+  .is-mini .pml-player-from-pre { display: none; }      /* phones: just the bars + the mood */
+}

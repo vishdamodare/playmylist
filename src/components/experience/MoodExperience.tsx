@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import {
+  MessageSquareHeart,
   ArrowLeft,
   Pencil,
   Trash2,
@@ -46,6 +47,8 @@ function vhsStamp(): string {
 import { storage } from "@/lib/storage";
 import { api, VoiceNote } from "@/lib/api";
 import { askName, useProfile } from "@/lib/profile";
+import { MoodTour, hasToured } from "@/components/experience/MoodTour";
+import { openFeedback } from "@/components/Feedback";
 
 /** What each room says after your name. */
 const HELLO: Record<string, string> = {
@@ -78,6 +81,8 @@ interface MoodExperienceProps {
   epigraph?: React.ReactNode;
   /** Song source override (e.g. "My Playlist" instead of the mood's built-in queue). */
   songs?: Pick<MusicPlayerProps, "queue" | "onAddSongs" | "userSongIds" | "onRemoveSong" | "fallbackTitle" | "fallbackArtist" | "queueName">;
+  /** The shuffled order this mood is playing in, so the bar matches what the player loaded. */
+  playingQueue?: string[];
 }
 
 export function MoodExperience({
@@ -89,20 +94,24 @@ export function MoodExperience({
   visual,
   epigraph,
   songs,
+  playingQueue,
 }: MoodExperienceProps) {
   const t = mood.theme;
   const profile = useProfile();
 
   // First mood of the visit: ask what to call them (after the page transition settles).
+  // Brand-new visitors get Ava's tour first; it ends by asking their name.
+  const [touring, setTouring] = useState(false);
   useEffect(() => {
     if (askedThisVisit || profile.name || profile.skipped) return;
     const id = setTimeout(() => {
       if (askedThisVisit) return;
       askedThisVisit = true;
-      askName();
+      if (!songs && !hasToured()) setTouring(true);
+      else askName();
     }, 1400);
     return () => clearTimeout(id);
-  }, [profile.name, profile.skipped]);
+  }, [profile.name, profile.skipped, songs]);
 
   const [weather, setWeather] = useState<Weather | null>(null);
 
@@ -110,7 +119,11 @@ export function MoodExperience({
   const [extraSongs, setExtra] = useState<SongMeta[]>([]);
   const [addSignal, setAddSignal] = useState(0);
   useEffect(() => setExtra(getExtraSongs(mood.slug)), [mood.slug]);
-  const queue = moodQueue(mood.slug); // built-ins + saved extras (re-read each render, cheap)
+  const all = moodQueue(mood.slug); // built-ins + saved extras (re-read each render, cheap)
+  // Keep the playing (shuffled) order; songs added since go on the end.
+  const queue = playingQueue
+    ? [...playingQueue.filter((id) => all.includes(id)), ...all.filter((id) => !playingQueue.includes(id))]
+    : all;
 
   const addSongs = async (text: string): Promise<string> => {
     const tokens = text.split(/[\s,]+/).filter(Boolean);
@@ -409,6 +422,10 @@ export function MoodExperience({
           </button>
           <div className="pml-mood-nav-right">
             {headerExtra}
+            <button className="pml-fb-btn" onClick={openFeedback} aria-label="Send feedback" title="Send feedback">
+              <MessageSquareHeart size={14} aria-hidden="true" />
+              <span>Feedback</span>
+            </button>
             <button className="pml-add-song-btn" onClick={() => setAddSignal((n) => n + 1)}>
               <Plus size={14} /> Add your song
               {(songs?.userSongIds ?? extraSongs).length > 0 && <span>{(songs?.userSongIds ?? extraSongs).length}</span>}
@@ -433,6 +450,9 @@ export function MoodExperience({
       <div className="pml-film" aria-hidden="true" />
 
       <main className="pml-mood-body">
+        <h1 className="sr-only">
+          {mood.label} songs &amp; stories: {mood.playlistName}
+        </h1>
         <div className="pml-left-col">
           <div
             className="pml-visual-col"
@@ -750,6 +770,7 @@ export function MoodExperience({
               onEdit={handleStartEdit}
               onDelete={(s) => handleDeleteStory(s.id || "")}
               isPlaying={playerState.isPlaying}
+              weather={weather}
             />
           </div>
         </div>
@@ -766,10 +787,20 @@ export function MoodExperience({
         fallbackTitle={mood.tracks?.[0]?.title || mood.playlistName}
         fallbackArtist={mood.tracks?.[0]?.artist}
         queueName={mood.playlistName}
+        from={{ label: mood.label }}
         playerState={playerState}
         provider={provider}
         {...songs}
       />
+      {touring && (
+        <MoodTour
+          accent={t.accent}
+          onDone={() => setTouring(false)}
+          onAskName={() => {
+            askName();
+          }}
+        />
+      )}
     </div>
   );
 }

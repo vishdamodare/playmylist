@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { ArrowRight, Heart, Disc3, BookOpen } from "lucide-react";
+import { openFeedback, VishLinks } from "@/components/Feedback";
 import { MOODS } from "@/data/moods";
 import { moodPlaylists } from "@/data/moodPlaylists";
 
@@ -285,12 +286,35 @@ export function HomeSections({ onSelectMood, onNavigate, onOpenPlaylist }: HomeS
         <div className="pml-hs-giant" aria-hidden="true">
           PLAYMYLIST
         </div>
+        <div className="pml-hs-sign" data-reveal>
+          <figure className="pml-hs-letter">
+            <span className="pml-hs-washi" aria-hidden="true" />
+            <blockquote>
+              I made this for the songs we play when words run out. If one of them found you tonight, it was always meant for you.
+            </blockquote>
+            <figcaption>
+              with love,
+              <span className="pml-hs-name">
+                Vish
+                <svg viewBox="0 0 120 14" aria-hidden="true">
+                  <path d="M3 9 C 30 3, 60 13, 90 6 S 115 7, 117 4" />
+                </svg>
+              </span>
+            </figcaption>
+            <span className="pml-hs-seal" aria-hidden="true">
+              <Heart size={16} fill="currentColor" strokeWidth={0} />
+            </span>
+          </figure>
+          <p className="pml-hs-by">Designed &amp; developed by Vish</p>
+          <VishLinks className="is-dark" />
+        </div>
         <div className="pml-hs-foot-row">
           <span>Music · Stories · Visuals · One feeling</span>
           <nav>
             <button onClick={() => onNavigate("discover")}>Discover</button>
             <button onClick={() => onNavigate("library")}>Stories</button>
             <button onClick={() => onNavigate("playlists")}>Playlists</button>
+            <button onClick={openFeedback}>Feedback</button>
           </nav>
           <span>made for late nights · &apos;96</span>
         </div>

@@ -19,6 +19,8 @@ interface StoryShelfProps {
   isPlaying: boolean;
   /** show the shelf companion (only one per page looks right) */
   companion?: boolean;
+  /** page weather, so the companion can dress for it */
+  weather?: string | null;
 }
 
 const BUDDY_W = 72; // must match .pml-buddy width
@@ -159,7 +161,7 @@ function Reader({ story, number, origin, color, moodLabel, theme, isUser, onEdit
   );
 }
 
-export function StoryShelf({ stories, moodLabel, theme, isUserStory, onEdit, onDelete, isPlaying, companion = true }: StoryShelfProps) {
+export function StoryShelf({ stories, moodLabel, theme, isUserStory, onEdit, onDelete, isPlaying, companion = true, weather }: StoryShelfProps) {
   const [open, setOpen] = useState<{ id: string; origin: DOMRect } | null>(null);
   const [hover, setHover] = useState<Story | null>(null);
 
@@ -434,6 +436,7 @@ export function StoryShelf({ stories, moodLabel, theme, isUserStory, onEdit, onD
           hidden={buddy.hidden}
           accent={theme.accent}
           accent2={theme.accent2}
+          weather={weather}
           onArrive={() => setBuddy((b) => ({ ...b, walking: false }))}
         />
       )}

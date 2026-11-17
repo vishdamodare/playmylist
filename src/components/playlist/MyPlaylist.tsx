@@ -66,6 +66,9 @@ export function MyPlaylist({ onBack, playerState, provider, headerExtra }: MyPla
   useEffect(() => {
     if (loaded) storage.set(KEY, JSON.stringify({ name, songs } satisfies Saved));
   }, [loaded, name, songs]);
+  useEffect(() => {
+    if (loaded) api.syncSongs(SCOPE, songs).catch(() => {});
+  }, [loaded, songs]);
 
   const ids = songs.map((s) => s.id);
 
