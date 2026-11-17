@@ -48,6 +48,7 @@ import { storage } from "@/lib/storage";
 import { api, VoiceNote } from "@/lib/api";
 import { askName, useProfile } from "@/lib/profile";
 import { MoodTour, hasToured } from "@/components/experience/MoodTour";
+import { MoodDrift } from "@/components/experience/MoodDrift";
 import { openFeedback } from "@/components/Feedback";
 
 /** What each room says after your name. */
@@ -415,6 +416,8 @@ export function MoodExperience({
       data-weather={weather ?? undefined}
       style={{ "--m-from": t.from, "--m-via": t.via, "--m-to": t.to } as React.CSSProperties}
     >
+      {/* drifting keepsakes; they step aside while a weather effect is on */}
+      {!weather && <MoodDrift key={mood.slug} slug={mood.slug} accent={t.accent} />}
       <header>
         <nav className="pml-mood-nav" aria-label="Mood navigation">
           <button className="pml-back" onClick={onBack}>

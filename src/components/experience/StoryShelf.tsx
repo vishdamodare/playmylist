@@ -31,6 +31,9 @@ const SHELF_PAD = 28 + 44 + 8; // frame padding + row padding + safety
 const LEFT_DECOR_W = 220; // book stack + mixtape
 const RIGHT_DECOR_W = 150; // polaroid + candle
 const NARROW = 480; // below this the left décor is hidden (see CSS)
+const SPINE_ZOOM = 0.74; // matches .pml-spine { zoom } on phones
+const SHELF_PAD_NARROW = 20 + 20 + 6; // tighter frame + row padding on phones
+const RIGHT_DECOR_W_NARROW = 62; // only the candle shows on phones
 
 
 // Classic cloth-binding colours; each gets tinted toward the mood's accent.
@@ -364,11 +367,15 @@ export function StoryShelf({ stories, moodLabel, theme, isUserStory, onEdit, onD
     );
   };
 
+  // Phones: books are drawn at SPINE_ZOOM (see CSS) and only the candle sits on the right,
+  // so reserve its real width; otherwise each shelf ends up holding a single book.
+  const narrow = frameW > 0 && frameW <= NARROW;
+  const k = narrow ? SPINE_ZOOM : 1;
   const rows = layoutRows(
-    stories.map((s) => spineLook(s, theme.accent).width + 2),
-    Math.max(0, frameW - SHELF_PAD),
-    frameW <= NARROW ? 0 : LEFT_DECOR_W,
-    RIGHT_DECOR_W
+    stories.map((s) => (spineLook(s, theme.accent).width + 2) * k),
+    Math.max(0, frameW - (narrow ? SHELF_PAD_NARROW : SHELF_PAD)),
+    narrow ? 0 : LEFT_DECOR_W,
+    narrow ? RIGHT_DECOR_W_NARROW : RIGHT_DECOR_W
   );
 
   return (

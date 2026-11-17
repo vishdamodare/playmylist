@@ -2929,7 +2929,7 @@ canvas#wave {
 .pml-buddy-svg * { transform-box: view-box; }
 
 /* default pose: sitting on the edge, legs dangling, smiling */
-.bd-legs-stand, .bd-eyes-happy, .bd-mouth-open, .bd-phones, .bd-notes, .bd-phone, .bd-phone-wire { display: none; }
+.bd-legs-stand, .bd-eyes-happy, .bd-mouth-open, .bd-notes { display: none; } /* earbuds, wire and phone are always on; the phone's screen comes alive with music */
 .bd-upper { transform: translateY(10px); transition: transform .3s ease; }
 .bd-shadow { opacity: .6; }
 .bd-leg.l { transform-origin: 49px 122px; }
@@ -2959,7 +2959,8 @@ canvas#wave {
 .pml-buddy.is-jump .bd-arm.r { transform: rotate(-70deg); }
 
 /* music: headphones on, eyes closed happily, head bobbing, notes floating */
-.pml-buddy.is-music .bd-phones, .pml-buddy.is-music .bd-notes, .pml-buddy.is-music .bd-phone, .pml-buddy.is-music .bd-phone-wire { display: inline; }
+.pml-buddy.is-music .bd-notes { display: inline; }
+.pml-buddy:not(.is-music) .bd-phone-glow { opacity: .12; } /* calm screen when nothing is playing */
 .pml-buddy.is-music.is-sit .bd-eyes-open { display: none; }
 .pml-buddy.is-music.is-sit .bd-eyes-happy { display: inline; }
 
@@ -6324,3 +6325,16 @@ button.pml-player-from:focus-visible { outline: 2px solid var(--pa); outline-off
   button.pml-player-from { padding: 7px 14px 7px 11px; } /* easier to tap */
   .is-mini .pml-player-from-pre { display: none; }      /* phones: just the bars + the mood */
 }
+
+/* ── phones: a compact bookshelf + notebook ── */
+@media (max-width: 480px) {
+  .pml-spine { zoom: .74; }                  /* keep in sync with SPINE_ZOOM in StoryShelf.tsx */
+  .pml-shelf { --slot: 178px; }
+  .pml-shelf-row { padding: 0 10px var(--plank); gap: 1px; }
+  .pml-desk .pml-notecard-textarea { height: 168px; min-height: 136px; } /* was 290px of empty lines */
+}
+
+/* ── mood keepsakes drifting behind the page ── */
+.pml-mood { isolation: isolate; }
+.pml-mood-drift { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+
