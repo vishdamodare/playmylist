@@ -4,11 +4,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { Sun, Moon } from "lucide-react";
 import { HomeSections } from "@/components/home/HomeSections";
 import { startSky } from "@/components/home/sky";
+import { api, CommunityPlaylist } from "@/lib/api";
 import { openFeedback } from "@/components/Feedback";
 
 interface HomeProps {
   onSelectMood: (slug: string) => void;
   onOpenPlaylist: () => void;
+  onOpenCommunity: (p: CommunityPlaylist) => void;
+  onMakeForEveryone: () => void;
   onNavigate: (view: "discover" | "library" | "playlists") => void;
   skyMode: "morning" | "night";
   onSkyMode: (mode: "morning" | "night") => void;
@@ -44,7 +47,11 @@ function lerpColor(
   ];
 }
 
-export function Home({ onSelectMood, onOpenPlaylist, onNavigate, skyMode, onSkyMode: setSkyMode }: HomeProps) {
+export function Home({ onSelectMood, onOpenPlaylist, onOpenCommunity, onMakeForEveryone, onNavigate, skyMode, onSkyMode: setSkyMode }: HomeProps) {
+  const [community, setCommunity] = useState<CommunityPlaylist[]>([]);
+  useEffect(() => {
+    api.communityPlaylists().then(setCommunity, () => {}); // offline / no DB: the row just shows "share yours"
+  }, []);
 
   const sceneCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -270,6 +277,27 @@ export function Home({ onSelectMood, onOpenPlaylist, onNavigate, skyMode, onSkyM
             </button>
           ))}
         </div>
+
+        <section className="pml-community" aria-label="Playlists made by listeners">
+          <div className="pml-community-label">Made by listeners</div>
+          <div className="moods pml-community-row">
+            {community.map((p, i) => (
+              <button
+                key={p.id}
+                className="mood pml-community-chip"
+                style={{ "--mood-color": MOODS_CONFIG[i % MOODS_CONFIG.length].color } as React.CSSProperties}
+                onClick={() => onOpenCommunity(p)}
+              >
+                {p.name}
+                <span className="pml-community-by">by {p.creator}</span>
+              </button>
+            ))}
+            <button className="mood pml-community-chip pml-community-add" onClick={onMakeForEveryone}>
+              + Share yours
+              <span className="pml-community-by">everyone will hear it</span>
+            </button>
+          </div>
+        </section>
 
         <a
           className="explore"

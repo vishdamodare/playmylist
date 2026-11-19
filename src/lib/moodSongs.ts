@@ -1,5 +1,5 @@
 import { moodPlaylists } from "@/data/moodPlaylists";
-import { parsePlaylistInput } from "@/lib/playlistHelper";
+import { queueVideoIds } from "@/lib/playlistHelper";
 import type { SongMeta } from "@/lib/youtubeMeta";
 import { api } from "@/lib/api";
 
@@ -44,8 +44,8 @@ export function syncAllSongs(): void {
 /** The mood's built-in song IDs followed by the listener's own additions. */
 export function moodQueue(slug: string): string[] {
   const base = moodPlaylists[slug]?.playlistId;
-  const ids = (Array.isArray(base) ? base : base ? [base] : []).map((x) => parsePlaylistInput(x).id).filter(Boolean);
-  return [...ids, ...getExtraSongs(slug).map((s) => s.id)];
+  // validated + de-duplicated: an old or hand-edited saved song can't break the whole queue
+  return queueVideoIds([...(Array.isArray(base) ? base : base ? [base] : []), ...getExtraSongs(slug).map((s) => s.id)]);
 }
 
 /** Fisher–Yates copy, so every mood visit starts in a fresh random order. */

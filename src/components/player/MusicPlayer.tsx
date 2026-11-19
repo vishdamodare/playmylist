@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Loader2, ListMusic, X, Plus, Link2 } from "lucide-react";
 import { PlayerState, MusicProvider } from "@/types/player";
-import { parsePlaylistInput } from "@/lib/playlistHelper";
+import { parsePlaylistInput, queueVideoIds } from "@/lib/playlistHelper";
 import { lookupSong, SongMeta } from "@/lib/youtubeMeta";
 
 export interface MusicPlayerProps {
@@ -34,7 +34,7 @@ export interface MusicPlayerProps {
 function queueKey(queue: string | string[] | undefined): string {
   if (!queue) return "";
   if (Array.isArray(queue)) {
-    return queue.map((q) => parsePlaylistInput(q).id).filter(Boolean).join(",");
+    return queueVideoIds(queue).join(",");
   }
   return parsePlaylistInput(queue).id;
 }
@@ -89,7 +89,7 @@ export function MusicPlayer({
   const [meta, setMeta] = useState<Record<string, SongMeta>>({});
   const queueRef = useRef<HTMLDivElement>(null);
   const queueIds = Array.isArray(queue)
-    ? queue.map((q) => parsePlaylistInput(q).id).filter(Boolean)
+    ? queueVideoIds(queue)
     : [];
 
   // Fetch titles for the queue the first time the panel opens.
@@ -425,7 +425,7 @@ export function MusicPlayer({
                   ref={addInputRef}
                   value={addText}
                   onChange={(e) => setAddText(e.target.value)}
-                  placeholder="Paste YouTube links — one or many"
+                  placeholder="Paste song links, or a whole YouTube playlist link"
                   aria-label="YouTube song links"
                 />
                 <button type="submit" disabled={adding || !addText.trim()}>

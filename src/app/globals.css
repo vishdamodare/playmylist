@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6338,3 +6337,86 @@ button.pml-player-from:focus-visible { outline: 2px solid var(--pa); outline-off
 .pml-mood { isolation: isolate; }
 .pml-mood-drift { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
 
+/* My Playlist: "for me / for someone" switch, recipient name, share */
+.pml-mp-for {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 24px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.pml-mp-for button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #a99cb8;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background .2s ease, color .2s ease;
+}
+.pml-mp-for button[aria-selected="true"] { background: #f4ede4; color: #121016; }
+.pml-mp-to { display: flex; align-items: baseline; gap: 10px; }
+.pml-mp-to span { font-size: 10px; color: #8e869f; }
+.pml-mp-to input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.35rem;
+  color: #e8897f;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(243,236,228,.18);
+  outline: none;
+}
+.pml-mp-to input:focus { border-bottom-color: #e8897f; }
+.pml-mp-share { background: linear-gradient(135deg, #9a6fd9, #e8897f); color: #fff; margin-top: 0; }
+
+/* Home: "Made by listeners" community playlists, under the moods */
+.pml-newhome .pml-community { margin-top: 1.6rem; display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
+.pml-newhome .pml-community-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.pml-newhome .pml-community-row { max-height: 7.5rem; overflow-y: auto; }
+.pml-newhome .pml-community-chip { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.pml-newhome .pml-community-by { font-size: 0.68rem; font-weight: 400; opacity: 0.6; font-style: italic; }
+.pml-mp-unpublish {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #8e869f;
+  font-size: 10.5px;
+}
+.pml-mp-unpublish:hover { color: #e8897f; }
+.pml-newhome .pml-community-add { border-style: dashed; }
+
+/* My Playlist room: "make one for someone / for everyone" */
+.pml-mp-makefor { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.pml-mp-makefor span { font-size: 10px; color: #8e869f; margin-right: 2px; }
+.pml-mp-makefor button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  color: #f3ece4;
+  font-size: 12px;
+  transition: border-color .2s ease, background .2s ease;
+}
+.pml-mp-makefor button:hover { border-color: #e8897f; background: rgba(232,137,127,.12); }

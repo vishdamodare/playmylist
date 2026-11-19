@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { PlayerState, MusicProvider } from "@/types/player";
-import { parsePlaylistInput } from "@/lib/playlistHelper";
+import { parsePlaylistInput, queueVideoIds } from "@/lib/playlistHelper";
 
 let isScriptLoading = false;
 let isScriptReady = false;
 const readyCallbacks: Array<() => void> = [];
 
-function loadYouTubeIframeApi(onReady: () => void) {
+export function loadYouTubeIframeApi(onReady: () => void) {
   if (typeof window === "undefined") return;
 
   if (window.YT && window.YT.Player) {
@@ -87,14 +87,29 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
     }
     return true;
   };
-  // The video-id list currently loaded into YouTube; picking another song from it jumps instead of reloading.
-  const loadedKeyRef = useRef("");
   const pendingMediaRef = useRef<{
     id: string | string[];
     type: "playlist" | "video";
     autoplay: boolean;
     index: number;
   } | null>(null);
+
+  // YouTube answers error 2 ("invalid parameter") when a new list is loaded while the previous one is still
+  // loading, or when playVideo() lands mid-load. So loads go one at a time: while one is in flight the newest
+  // request waits, and runs as soon as the player settles (or after a few seconds, if it never does).
+  type Load = { id: string | string[]; type: "playlist" | "video"; autoplay: boolean; index: number };
+  const inFlightRef = useRef(false);
+  const waitingRef = useRef<Load | null>(null);
+  const lastLoadRef = useRef<Load | null>(null);
+  const retriedRef = useRef(false);
+  const settleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const settleRef = useRef<() => void>(() => {});
+
+  // Our own queue: songs load one at a time with loadVideoById, which starts about twice as fast as handing
+  // YouTube the whole list (and has no 200-song cap, no silently dropped IDs). null = a YouTube playlist link.
+  const queueRef = useRef<string[] | null>(null);
+  const posRef = useRef(0);
+  const playAtRef = useRef<(i: number) => boolean>(() => false);
 
   const startProgressPolling = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -155,6 +170,15 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
       const player = playerRef.current;
       if (!player) return;
 
+      if (inFlightRef.current) {
+        waitingRef.current = { id: idOrList, type, autoplay, index }; // only the newest request matters
+        return;
+      }
+      inFlightRef.current = true;
+      lastLoadRef.current = { id: idOrList, type, autoplay, index };
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = setTimeout(() => settleRef.current(), 4000);
+
       try {
         player.unMute?.();
 
@@ -192,19 +216,32 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
           }
         }
 
+        // loadPlaylist/loadVideoById already start playback. Only nudge if nothing started (some mobile
+        // browsers), and never mid-load: an early playVideo() is itself an error-2 trigger.
         if (autoplay) {
           setTimeout(() => {
             try {
-              player.playVideo?.();
+              const st = player.getPlayerState?.();
+              if (st === -1 || st === 5) player.playVideo?.();
             } catch {}
-          }, 100);
+          }, 1500);
         }
       } catch (e) {
         console.error("Error executing YouTube load:", e);
+        settleRef.current();
       }
     },
     []
   );
+
+  settleRef.current = () => {
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = null;
+    inFlightRef.current = false;
+    const next = waitingRef.current;
+    waitingRef.current = null;
+    if (next) executeLoad(next.id, next.type, next.autoplay, next.index);
+  };
 
   /** Show the song we're switching to right away (title fills in from the lookup cache), before YouTube catches up. */
   const announce = useCallback((videoId: string | undefined) => {
@@ -218,8 +255,30 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
     );
   }, []);
 
+  /** Play song `i` of our own queue. false = there is no such song. */
+  const playAt = useCallback(
+    (i: number, autoplay: boolean = true) => {
+      const q = queueRef.current;
+      if (!q || i < 0 || i >= q.length) return false;
+      posRef.current = i;
+      announce(q[i]);
+      if (!playerRef.current?.getPlayerState) {
+        pendingMediaRef.current = { id: q[i], type: "video", autoplay, index: 0 };
+        return true;
+      }
+      executeLoad(q[i], "video", autoplay);
+      return true;
+    },
+    [announce, executeLoad]
+  );
+  playAtRef.current = playAt;
+
   const step = useCallback(
     (dir: 1 | -1) => {
+      if (queueRef.current) {
+        playAt(posRef.current + dir);
+        return;
+      }
       const pl = playerRef.current;
       if (!pl?.nextVideo) return;
       try {
@@ -233,7 +292,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
         console.error("Error changing song:", err);
       }
     },
-    [announce]
+    [announce, playAt]
   );
   const next = useCallback(() => step(1), [step]);
   const previous = useCallback(() => step(-1), [step]);
@@ -289,6 +348,8 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
             onStateChange: (event: any) => {
               if (isCancelled) return;
               const state = event.data;
+              if (state === 1 || state === 2 || state === 5 || state === 0) settleRef.current();
+              if (state === 1) retriedRef.current = false;
 
               // 1 = Playing, 2 = Paused, 3 = Buffering, 0 = Ended, 5 = Cued
               if (state === 1) {
@@ -315,8 +376,9 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
                   isBuffering: true,
                 }));
               } else if (state === 0) {
-                // When a song in a YouTube playlist ends, YouTube automatically plays the next song
-                updateTrackInfo();
+                // Song ended: our queue moves on itself (a YouTube playlist link advances on its own)
+                if (queueRef.current) playAtRef.current(posRef.current + 1);
+                else updateTrackInfo();
               } else if (state === -1) {
                 setPlayerState((prev) => ({
                   ...prev,
@@ -333,31 +395,40 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
             onError: (event: any) => {
               if (isCancelled) return;
               const code = event.data;
-              let msg = "Playback encountered an issue.";
-              if (code === 2) msg = "Invalid playlist parameter.";
-              else if (code === 5) msg = "HTML5 player error.";
-              else if (code === 100) msg = "Playlist not found.";
-              const blocked = code === 101 || code === 150;
-              let blockedId: string | undefined;
-              if (blocked) {
-                // The uploader doesn't allow playback on other sites (common for VEVO / label videos).
-                const pl = playerRef.current;
-                blockedId = pl?.getVideoData?.()?.video_id;
-                const idx = pl?.getPlaylistIndex?.() ?? -1;
-                const len = pl?.getPlaylist?.()?.length ?? 0;
-                const hasNext = idx >= 0 && idx < len - 1;
-                msg = hasNext ? "Can't play outside YouTube — skipping" : "Can't play outside YouTube";
-                if (hasNext) {
+              settleRef.current();
+
+              // Error 2 is almost always a load that raced another one: retry the same load once, quietly.
+              if (code === 2 && !retriedRef.current && lastLoadRef.current) {
+                retriedRef.current = true;
+                const last = lastLoadRef.current;
+                setTimeout(() => executeLoad(last.id, last.type, last.autoplay, last.index), 400);
+                return;
+              }
+
+              const pl = playerRef.current;
+              const q = queueRef.current;
+              const idx = q ? posRef.current : (pl?.getPlaylistIndex?.() ?? -1);
+              const len = q ? q.length : (pl?.getPlaylist?.()?.length ?? 0);
+              const hasNext = idx >= 0 && idx < len - 1;
+              let msg = "Couldn't play this song";
+              if (code === 101 || code === 150) msg = "Can't play outside YouTube"; // uploader blocks embedding (VEVO / labels)
+              else if (code === 100) msg = "This song was removed from YouTube";
+              else if (code === 5) msg = "Your browser couldn't play this song";
+              // One bad song shouldn't stop the music: skip ahead when there's a next one.
+              const blockedId: string | undefined = (q ? q[posRef.current] : pl?.getVideoData?.()?.video_id) || undefined;
+              if (hasNext) {
+                msg += " — skipping";
+                if (q) setTimeout(() => playAtRef.current(posRef.current + 1), 0);
+                else
                   try {
                     pl.nextVideo();
                   } catch {}
-                }
               }
 
               setPlayerState((prev) => ({
                 ...prev,
                 isPlaying: false,
-                isBuffering: false,
+                isBuffering: hasNext,
                 error: msg,
                 blockedIds:
                   blockedId && !(prev.blockedIds ?? []).includes(blockedId)
@@ -389,47 +460,16 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
       startIndex: number = 0
     ) => {
       if (Array.isArray(input)) {
-        const videoIds = input
-          .map((item) => parsePlaylistInput(item).id)
-          .filter(Boolean);
+        const videoIds = queueVideoIds(input);
 
         if (videoIds.length === 0) return;
         const index = Math.min(Math.max(0, startIndex), videoIds.length - 1);
         const key = videoIds.join(",");
 
-        // Same list already in the player: jump to the song instead of reloading the whole playlist (much faster).
-        if (key === loadedKeyRef.current && playerRef.current?.playVideoAt) {
-          announce(videoIds[index]);
-          try {
-            playerRef.current.unMute?.();
-            playerRef.current.playVideoAt(index);
-            return;
-          } catch {
-            // fall through to a full load
-          }
-        }
-        loadedKeyRef.current = key;
-
-        expectedIdRef.current = videoIds[index];
-        expectedAtRef.current = Date.now();
-        setPlayerState((prev) => ({
-          ...prev,
-          playlistId: key,
-          currentVideoId: videoIds[index],
-          currentVideoTitle: undefined,
-          currentArtist: undefined,
-          duration: 0,
-          currentTime: 0,
-          error: null,
-          isBuffering: autoplay, // spinner from the click, not only once YouTube starts buffering
-        }));
-
-        if (!playerRef.current || !playerRef.current.getPlayerState) {
-          pendingMediaRef.current = { id: videoIds, type: "playlist", autoplay, index };
-          return;
-        }
-
-        executeLoad(videoIds, "playlist", autoplay, index);
+        queueRef.current = videoIds;
+        retriedRef.current = false;
+        setPlayerState((prev) => (prev.playlistId === key ? prev : { ...prev, playlistId: key }));
+        playAt(index, autoplay);
         return;
       }
 
@@ -440,7 +480,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
       const playlistId = parsed.id;
       const type = parsed.type || defaultType;
-      loadedKeyRef.current = "";
+      queueRef.current = null;
 
       setPlayerState((prev) => ({
         ...prev,
@@ -456,7 +496,7 @@ export function useYouTubePlayer(containerId: string = "youtube-player-element")
 
       executeLoad(playlistId, type, autoplay);
     },
-    [executeLoad, announce]
+    [executeLoad, playAt]
   );
 
   const play = useCallback(() => {

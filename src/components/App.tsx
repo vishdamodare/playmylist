@@ -7,6 +7,9 @@ import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
 import { Home } from "@/components/home/Home";
 import { MoodExperience } from "@/components/experience/MoodExperience";
 import { MyPlaylist } from "@/components/playlist/MyPlaylist";
+import { MakePlaylist, MakeMode } from "@/components/playlist/MakePlaylist";
+import { Received, decodeGift } from "@/lib/gift";
+import type { CommunityPlaylist } from "@/lib/api";
 import { DiscoverPage, LibraryPage, PlaylistsPage, BrowseView } from "@/components/browse/Browse";
 import { YouTubePlayer } from "@/components/player/YouTubePlayer";
 import { MusicPlayer } from "@/components/player/MusicPlayer";
@@ -54,6 +57,18 @@ const viewFromPath = (path: string): View => {
 
 export function PlayMyList({ initialView = "home" }: { initialView?: View }) {
   const [view, setView] = useState<View>(initialView);
+  const [makeMode, setMakeMode] = useState<MakeMode>("someone");
+  const [received, setReceived] = useState<Received | null>(null);
+
+  // Someone sent you a playlist (?gift=…): open it straight away.
+  useEffect(() => {
+    const raw = new URLSearchParams(location.search).get("gift");
+    const g = raw && decodeGift(raw);
+    if (g) {
+      setReceived(g);
+      setView("received");
+    }
+  }, []);
 
   // Keep the tab title in step with the screen (matches each page's server-rendered <title>).
   useEffect(() => {
@@ -132,7 +147,26 @@ export function PlayMyList({ initialView = "home" }: { initialView?: View }) {
     [playMood, go]
   );
 
-  const goHome = useCallback(() => go("home"), [go]);
+  const goHome = useCallback(() => {
+    if (location.search) history.replaceState(null, "", "/");
+    go("home");
+  }, [go]);
+
+  const make = useCallback(
+    (mode: MakeMode) => {
+      setMakeMode(mode);
+      go("make");
+    },
+    [go]
+  );
+
+  const openCommunity = useCallback(
+    (p: CommunityPlaylist) => {
+      setReceived({ name: p.name, to: "", ids: p.ids, by: p.creator, id: p.id, mine: p.mine });
+      go("received");
+    },
+    [go]
+  );
 
   const isBrowse = view === "discover" || view === "library" || view === "playlists";
   const skyToggle = <SkyToggle mode={skyMode} onChange={setSkyMode} />;
@@ -155,7 +189,11 @@ export function PlayMyList({ initialView = "home" }: { initialView?: View }) {
           headerExtra={skyToggle}
         />
       ) : view === "playlist" ? (
-        <MyPlaylist onBack={goHome} playerState={playerState} provider={provider} headerExtra={skyToggle} />
+        <MyPlaylist onBack={goHome} onMake={make} playerState={playerState} provider={provider} headerExtra={skyToggle} />
+      ) : view === "make" ? (
+        <MakePlaylist key={makeMode} initialMode={makeMode} onBack={goHome} playerState={playerState} provider={provider} headerExtra={skyToggle} />
+      ) : view === "received" && received ? (
+        <MakePlaylist key={received.id ?? "gift"} received={received} onBack={goHome} playerState={playerState} provider={provider} headerExtra={skyToggle} />
       ) : view === "discover" ? (
         <DiscoverPage onSelectMood={handleSelectMood} {...nav} />
       ) : view === "library" ? (
@@ -173,6 +211,8 @@ export function PlayMyList({ initialView = "home" }: { initialView?: View }) {
         <Home
           onSelectMood={handleSelectMood}
           onOpenPlaylist={() => go("playlist")}
+          onOpenCommunity={openCommunity}
+          onMakeForEveryone={() => make("everyone")}
           onNavigate={(v) => go(v)}
           skyMode={skyMode}
           onSkyMode={setSkyMode}

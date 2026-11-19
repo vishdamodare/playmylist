@@ -81,3 +81,14 @@ CREATE TABLE IF NOT EXISTS feedback (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS feedback_owner_created_idx ON feedback (owner_id, created_at DESC);
+
+-- Playlists anyone can publish to the home page ("Made by listeners"), signed by their creator.
+CREATE TABLE IF NOT EXISTS community_playlists (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id    uuid NOT NULL,            -- anonymous per-browser id; only the owner may remove it
+  name        text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 60),
+  creator     text NOT NULL CHECK (char_length(creator) BETWEEN 1 AND 40),
+  song_ids    text[] NOT NULL CHECK (cardinality(song_ids) BETWEEN 1 AND 200),
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS community_playlists_created_idx ON community_playlists (created_at DESC);

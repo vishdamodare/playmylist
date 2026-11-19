@@ -122,6 +122,20 @@ export const api = {
   async deleteMedia(id: string) {
     await ok<void>(await fetch(`/api/media/${id}`, { method: "DELETE", headers: headers(false) }));
   },
+
+  async communityPlaylists() {
+    const { playlists } = await ok<{ playlists: PlaylistRow[] }>(await fetch("/api/playlists", { headers: headers(false) }));
+    return playlists.map(toCommunity);
+  },
+  async publishPlaylist(name: string, creator: string, ids: string[]) {
+    const { playlist } = await ok<{ playlist: PlaylistRow }>(
+      await fetch("/api/playlists", { method: "POST", headers: headers(), body: JSON.stringify({ name, creator, ids }) })
+    );
+    return toCommunity(playlist);
+  },
+  async deletePlaylist(id: string) {
+    await ok<void>(await fetch(`/api/playlists/${id}`, { method: "DELETE", headers: headers(false) }));
+  },
 };
 
 export interface MediaItem {
@@ -137,3 +151,19 @@ export interface VoiceNote {
   createdAt: string;
   url: string;
 }
+
+interface PlaylistRow {
+  id: string;
+  name: string;
+  creator: string;
+  song_ids: string[];
+  mine: boolean;
+}
+export interface CommunityPlaylist {
+  id: string;
+  name: string;
+  creator: string;
+  ids: string[];
+  mine: boolean;
+}
+const toCommunity = (r: PlaylistRow): CommunityPlaylist => ({ id: r.id, name: r.name, creator: r.creator, ids: r.song_ids, mine: r.mine });

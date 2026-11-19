@@ -33,6 +33,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* warm up YouTube (player + thumbnails) while the page loads, so the first song starts sooner */}
+        <link rel="preconnect" href="https://www.youtube.com" />
+        <link rel="preconnect" href="https://i.ytimg.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

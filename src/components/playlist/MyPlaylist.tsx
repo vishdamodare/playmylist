@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ImagePlus, Play, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Gift, Globe, ImagePlus, Play, Trash2 } from "lucide-react";
+import type { MakeMode } from "@/components/playlist/MakePlaylist";
 import { PlayerState, MusicProvider } from "@/types/player";
 import { Mood } from "@/types/mood";
 import { MoodExperience } from "@/components/experience/MoodExperience";
-import { extractVideoId } from "@/lib/playlistHelper";
 import { storage } from "@/lib/storage";
-import { lookupSong as lookup } from "@/lib/youtubeMeta";
 import { api, MediaItem } from "@/lib/api";
+import { collectSongs, describeAdd } from "@/lib/youtubePlaylist";
 
 interface Song {
   id: string;
@@ -26,6 +26,7 @@ interface MyPlaylistProps {
   playerState: PlayerState;
   provider: MusicProvider;
   headerExtra?: React.ReactNode;
+  onMake: (mode: MakeMode) => void;
 }
 
 const KEY = "my_playlist";
@@ -42,7 +43,7 @@ const BASE_MOOD: Mood = {
   playlistName: "My Playlist",
 };
 
-export function MyPlaylist({ onBack, playerState, provider, headerExtra }: MyPlaylistProps) {
+export function MyPlaylist({ onBack, playerState, provider, headerExtra, onMake }: MyPlaylistProps) {
   const [name, setName] = useState("My Playlist");
   const [songs, setSongs] = useState<Song[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -73,21 +74,9 @@ export function MyPlaylist({ onBack, playerState, provider, headerExtra }: MyPla
   const ids = songs.map((s) => s.id);
 
   const addSongs = async (text: string): Promise<string> => {
-    const tokens = text.split(/[\s,]+/).filter(Boolean);
-    const found = tokens.map(extractVideoId).filter((x): x is string => Boolean(x));
-    const bad = tokens.length - found.length;
-    const fresh = Array.from(new Set(found)).filter((id) => !ids.includes(id));
-    const dupes = found.length - fresh.length;
-    const looked = await Promise.all(fresh.map(lookup));
-    const added = looked.filter((s): s is Song => s !== null);
-    const missing = looked.length - added.length;
-    if (added.length) setSongs((prev) => [...prev, ...added]);
-    const parts: string[] = [];
-    if (added.length) parts.push(`Added ${added.length} song${added.length === 1 ? "" : "s"} ✓`);
-    if (dupes) parts.push(`${dupes} already in your playlist`);
-    if (missing) parts.push(`${missing} unavailable on YouTube`);
-    if (bad) parts.push(`${bad} not a YouTube song link`);
-    return parts.join(" · ") || "Nothing to add";
+    const c = await collectSongs(text, ids);
+    if (c.songs.length) setSongs((prev) => [...prev, ...c.songs.filter((s) => !prev.some((p) => p.id === s.id))]);
+    return describeAdd(c, "already in your playlist");
   };
 
   const mood = useMemo(() => ({ ...BASE_MOOD, playlistName: name }), [name]);
@@ -120,6 +109,15 @@ export function MyPlaylist({ onBack, playerState, provider, headerExtra }: MyPla
         >
           <Play size={14} fill="currentColor" /> Play all
         </button>
+        <div className="pml-mp-makefor">
+          <span className="pml-mono">MAKE ONE</span>
+          <button onClick={() => onMake("someone")}>
+            <Gift size={13} /> For someone
+          </button>
+          <button onClick={() => onMake("everyone")}>
+            <Globe size={13} /> For everyone
+          </button>
+        </div>
       </div>
     </section>
   );

@@ -24,8 +24,7 @@ import { PlayerState, MusicProvider } from "@/types/player";
 import { MusicPlayer, MusicPlayerProps } from "@/components/player/MusicPlayer";
 import { StoryShelf } from "@/components/experience/StoryShelf";
 import { getExtraSongs, setExtraSongs, moodQueue } from "@/lib/moodSongs";
-import { extractVideoId } from "@/lib/playlistHelper";
-import { lookupSong, SongMeta } from "@/lib/youtubeMeta";
+import type { SongMeta } from "@/lib/youtubeMeta";
 import { MoodFx } from "@/components/experience/MoodFx";
 import { PageWeather, Weather } from "@/components/experience/PageWeather";
 
@@ -50,6 +49,7 @@ import { askName, useProfile } from "@/lib/profile";
 import { MoodTour, hasToured } from "@/components/experience/MoodTour";
 import { MoodDrift } from "@/components/experience/MoodDrift";
 import { openFeedback } from "@/components/Feedback";
+import { collectSongs, describeAdd } from "@/lib/youtubePlaylist";
 
 /** What each room says after your name. */
 const HELLO: Record<string, string> = {
@@ -127,25 +127,14 @@ export function MoodExperience({
     : all;
 
   const addSongs = async (text: string): Promise<string> => {
-    const tokens = text.split(/[\s,]+/).filter(Boolean);
-    const found = tokens.map(extractVideoId).filter((x): x is string => Boolean(x));
-    const bad = tokens.length - found.length;
-    const fresh = Array.from(new Set(found)).filter((id) => !queue.includes(id));
-    const dupes = found.length - fresh.length;
-    const looked = await Promise.all(fresh.map(lookupSong));
-    const added = looked.filter((x): x is SongMeta => x !== null);
-    const missing = looked.length - added.length;
-    if (added.length) {
-      const next = [...getExtraSongs(mood.slug), ...added];
+    const c = await collectSongs(text, queue);
+    if (c.songs.length) {
+      const have = getExtraSongs(mood.slug);
+      const next = [...have, ...c.songs.filter((s) => !have.some((h) => h.id === s.id))];
       setExtraSongs(mood.slug, next);
       setExtra(next);
     }
-    const parts: string[] = [];
-    if (added.length) parts.push(`Added ${added.length} song${added.length === 1 ? "" : "s"} ✓`);
-    if (dupes) parts.push(`${dupes} already here`);
-    if (missing) parts.push(`${missing} unavailable on YouTube`);
-    if (bad) parts.push(`${bad} not a YouTube song link`);
-    return parts.join(" · ") || "Nothing to add";
+    return describeAdd(c);
   };
 
   const removeSong = (id: string) => {

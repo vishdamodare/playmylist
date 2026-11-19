@@ -27,6 +27,27 @@ export function extractVideoId(input: string): string | null {
   return null;
 }
 
+/**
+ * The song IDs a queue really plays: valid 11-char IDs, first occurrence only.
+ * The player and the player bar both use this, so they always agree on the list (and its key).
+ */
+export function queueVideoIds(items: string[]): string[] {
+  return Array.from(new Set(items.map(extractVideoId).filter((x): x is string => Boolean(x))));
+}
+
+/**
+ * A YouTube playlist / album / mix link (or bare list ID) → its list ID.
+ * A link with both `v=` and `list=` counts as a song, except Mix links (`list=RD…`), which are only ever shared that way.
+ */
+export function extractListId(input: string): string | null {
+  const s = input.trim();
+  if (/^(PL|OLAK5uy_|RD|UU|FL)[0-9A-Za-z_-]{10,}$/.test(s)) return s;
+  if (!/youtube\.com|youtu\.be/i.test(s)) return null;
+  const list = s.match(/[?&]list=([0-9A-Za-z_-]+)/)?.[1];
+  if (!list || list === "WL" || list === "LL") return null; // Watch Later / Liked are private to the owner
+  return extractVideoId(s) && !list.startsWith("RD") ? null : list;
+}
+
 export function parsePlaylistInput(input: string): ParsedPlaylist {
   if (!input || input.startsWith("REPLACE_WITH")) {
     return { provider: "unknown", type: "playlist", id: "" };
