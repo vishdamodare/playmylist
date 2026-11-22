@@ -21,7 +21,19 @@ export function setExtraSongs(slug: string, songs: SongMeta[]): void {
   } catch {
     // storage full / blocked: the songs still play this session
   }
-  api.syncSongs(slug, songs).catch(() => {}); // best effort; the browser copy is the source of truth
+  sync(slug, songs);
+}
+
+/** Push a mood's list; drop any song an admin removed from this browser's copy too. */
+function sync(slug: string, songs: SongMeta[]): void {
+  api
+    .syncSongs(slug, songs)
+    .then((removed) => {
+      if (!removed.length) return;
+      const keep = getExtraSongs(slug).filter((s) => !removed.includes(s.id));
+      window.localStorage.setItem(key(slug), JSON.stringify(keep));
+    })
+    .catch(() => {}); // best effort; offline keeps the browser copy
 }
 
 /** Once per visit: push every saved list, so songs added before the server kept them show up too. */
@@ -31,11 +43,19 @@ export function syncAllSongs(): void {
       const k = localStorage.key(i) ?? "";
       if (k.startsWith("pml_private:mood_songs:")) {
         const songs = JSON.parse(localStorage.getItem(k) || "[]");
-        if (songs.length) api.syncSongs(k.slice("pml_private:mood_songs:".length), songs).catch(() => {});
+        if (songs.length) sync(k.slice("pml_private:mood_songs:".length), songs);
       }
     }
     const mine = JSON.parse(localStorage.getItem("pml_private:my_playlist") || "null");
-    if (mine?.songs?.length) api.syncSongs("my-playlist", mine.songs).catch(() => {});
+    if (mine?.songs?.length)
+      api
+        .syncSongs("my-playlist", mine.songs)
+        .then((removed) => {
+          if (!removed.length) return;
+          const cur = JSON.parse(localStorage.getItem("pml_private:my_playlist") || "null");
+          if (cur?.songs) localStorage.setItem("pml_private:my_playlist", JSON.stringify({ ...cur, songs: cur.songs.filter((s: SongMeta) => !removed.includes(s.id)) }));
+        })
+        .catch(() => {});
   } catch {
     // storage blocked or corrupt: nothing to sync
   }

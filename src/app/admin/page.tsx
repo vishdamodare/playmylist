@@ -19,7 +19,7 @@ export default async function Admin({ searchParams }: { searchParams: { owner?: 
   const owner = isUuid(searchParams.owner) ? searchParams.owner : null;
   // $1 = owner filter (NULL = everyone)
   const where = (col = "owner_id") => `($1::uuid IS NULL OR ${col} = $1::uuid)`;
-  const [people, stories, songs, media, voice, totals, feedback] = await Promise.all([
+  const [people, stories, songs, media, voice, totals, feedback, playlists] = await Promise.all([
     db.query(
       `WITH acts AS (
          SELECT owner_id, created_at AS at FROM stories UNION ALL
@@ -67,6 +67,13 @@ export default async function Admin({ searchParams }: { searchParams: { owner?: 
        FROM feedback f LEFT JOIN profiles p USING (owner_id) WHERE ${where("f.owner_id")} ORDER BY f.created_at DESC LIMIT 300`,
       [owner]
     ),
+    db.query(
+      `SELECT c.id, c.owner_id, c.name, c.creator, c.song_ids, p.display_name, c.created_at,
+         (SELECT coalesce(jsonb_object_agg(x.video_id, x.title), '{}')
+            FROM (SELECT DISTINCT ON (video_id) video_id, title FROM songs WHERE video_id = ANY(c.song_ids) AND title <> '') x) AS titles
+       FROM community_playlists c LEFT JOIN profiles p USING (owner_id) WHERE ${where("c.owner_id")} ORDER BY c.created_at DESC LIMIT 100`,
+      [owner]
+    ),
   ]);
   const withUrl = (rows: Row[]): Promise<Row[]> =>
     Promise.all(rows.map(async (r) => ({ ...r, url: await files.url(r.object_key, { expiresIn: 3600 }).catch(() => null) })));
@@ -86,6 +93,7 @@ export default async function Admin({ searchParams }: { searchParams: { owner?: 
         <h1>PlayMyList admin</h1>
         <nav>
           <a href="#feedback">Feedback</a>
+          <a href="#playlists">Home page playlists</a>
           <a href="#people">People</a>
           <a href="#songs">Songs</a>
           <a href="#stories">Stories</a>
@@ -134,6 +142,38 @@ export default async function Admin({ searchParams }: { searchParams: { owner?: 
             </article>
           ))}
           {!feedback.rowCount && <p><i>No feedback yet.</i></p>}
+        </div>
+      </section>
+
+      <section id="playlists">
+        <h2>Home page playlists ({playlists.rowCount})</h2>
+        <div className="cards">
+          {playlists.rows.map((r) => (
+            <article key={r.id}>
+              <header><b>{r.name}</b><span>by {r.creator} · {r.song_ids.length} songs</span></header>
+              <ol className="pl">
+                {(r.song_ids as string[]).map((v) => (
+                  <li key={v}>
+                    <a href={`https://www.youtube.com/watch?v=${v}`} target="_blank" rel="noreferrer">{r.titles[v] || v}</a>
+                    <DeleteButton
+                      label="Remove"
+                      fields={{ kind: "playlist-song", id: r.id, scope: v }}
+                      confirmText={
+                        r.song_ids.length === 1
+                          ? `This is the last song — removing it deletes “${r.name}”. Continue?`
+                          : `Remove “${r.titles[v] || v}” from “${r.name}”?`
+                      }
+                    />
+                  </li>
+                ))}
+              </ol>
+              <footer>
+                <span>{who(r)} · {when(r.created_at)}</span>
+                <DeleteButton fields={{ kind: "playlist", id: r.id }} confirmText={`Delete the playlist “${r.name}” from the home page?`} />
+              </footer>
+            </article>
+          ))}
+          {!playlists.rowCount && <p><i>No playlists published yet.</i></p>}
         </div>
       </section>
 
@@ -272,5 +312,6 @@ const css = `
 .del{display:inline;margin:0}.del button{background:none;border:1px solid #5a2a3a;color:#ff8fa3;border-radius:6px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
 .del button:hover{background:#3a1622;border-color:#ff8fa3}
 .cards footer,.grid figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pl{margin:0;padding-left:20px;max-height:14em;overflow:auto;font-size:13px}.pl li{display:flex;justify-content:space-between;gap:8px;padding:2px 0}.pl a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .adm audio{height:32px;vertical-align:middle;max-width:220px}
 `;

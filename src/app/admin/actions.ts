@@ -17,6 +17,12 @@ export async function adminDelete(form: FormData) {
 
   if (kind === "story" && isUuid(id)) {
     await db.query("DELETE FROM stories WHERE id = $1", [id]);
+  } else if (kind === "playlist" && isUuid(id)) {
+    await db.query("DELETE FROM community_playlists WHERE id = $1", [id]);
+  } else if (kind === "playlist-song" && isUuid(id) && typeof scope === "string" && VIDEO.test(scope)) {
+    // scope = the video id here; the last song takes the playlist with it (song_ids can't be empty)
+    await db.query("DELETE FROM community_playlists WHERE id = $1 AND song_ids = ARRAY[$2]::text[]", [id, scope]);
+    await db.query("UPDATE community_playlists SET song_ids = array_remove(song_ids, $2) WHERE id = $1", [id, scope]);
   } else if (kind === "feedback" && isUuid(id)) {
     await db.query("DELETE FROM feedback WHERE id = $1", [id]);
   } else if ((kind === "media" || kind === "voice") && isUuid(id)) {
@@ -41,7 +47,7 @@ export async function adminDelete(form: FormData) {
         "INSERT INTO removed_songs (owner_id, scope, video_id) SELECT owner_id, scope, video_id FROM songs WHERE owner_id = $1 ON CONFLICT DO NOTHING",
         [owner]
       );
-      for (const t of ["stories", "songs", "media", "voice_notes", "feedback", "profiles"])
+      for (const t of ["stories", "songs", "media", "voice_notes", "feedback", "community_playlists", "profiles"])
         await client.query(`DELETE FROM ${t} WHERE owner_id = $1`, [owner]);
       await client.query("COMMIT");
     } catch (e) {

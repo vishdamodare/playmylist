@@ -166,7 +166,18 @@ export function MakePlaylist({ onBack, playerState, provider, headerExtra, initi
       return next;
     });
 
-  const remove = (id: string) => setSongs((prev) => prev.filter((s) => s.id !== id));
+  const remove = async (id: string) => {
+    if (!received?.mine || !received.id) return setSongs((prev) => prev.filter((s) => s.id !== id));
+    // your published playlist: remove it on the server too (the last song takes the playlist with it)
+    if (songs.length === 1 && !confirm("This is the last song — removing it takes the playlist off the home page. Continue?")) return;
+    try {
+      const left = await api.removeFromPlaylist(received.id, id);
+      if (!left.length) return onBack();
+      setSongs((prev) => prev.filter((s) => s.id !== id));
+    } catch (e) {
+      setNotice(`Couldn't remove — ${(e as Error).message}`);
+    }
+  };
 
   const playFrom = (i: number) => provider.loadPlaylist(ids, "playlist", true, i);
 
@@ -321,7 +332,13 @@ export function MakePlaylist({ onBack, playerState, provider, headerExtra, initi
                       <span className="pml-mp-author">{s.author}</span>
                     </span>
                   </button>
-                  {!received && (
+                  {received?.mine ? (
+                  <div className="pml-mp-actions">
+                    <button className="danger" onClick={() => remove(s.id)} aria-label={`Remove ${s.title}`}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                  ) : !received && (
                   <div className="pml-mp-actions">
                     <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">
                       <ArrowUp size={13} />

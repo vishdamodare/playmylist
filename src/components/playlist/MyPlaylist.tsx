@@ -68,7 +68,11 @@ export function MyPlaylist({ onBack, playerState, provider, headerExtra, onMake 
     if (loaded) storage.set(KEY, JSON.stringify({ name, songs } satisfies Saved));
   }, [loaded, name, songs]);
   useEffect(() => {
-    if (loaded) api.syncSongs(SCOPE, songs).catch(() => {});
+    if (loaded)
+      api
+        .syncSongs(SCOPE, songs)
+        .then((removed) => removed.length && setSongs((prev) => prev.filter((s) => !removed.includes(s.id))))
+        .catch(() => {});
   }, [loaded, songs]);
 
   const ids = songs.map((s) => s.id);

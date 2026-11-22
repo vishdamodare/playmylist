@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 const VIDEO = /^[0-9A-Za-z_-]{11}$/;
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
 
-/** PUT /api/songs { scope, songs: [{ id, title, author }] } — replaces this browser's list for that scope. */
+/** PUT /api/songs { scope, songs: [{ id, title, author }] } — replaces this browser's list for that scope; returns { removed } (admin-deleted ids). */
 export async function PUT(req: Request) {
   const owner = ownerOf(req);
   if (!owner) return bad("missing owner id", 401);
@@ -23,10 +23,9 @@ export async function PUT(req: Request) {
 
   // songs an admin removed stay removed, even though the visitor's browser still lists them
   const { rows: gone } = await db.query("SELECT video_id FROM removed_songs WHERE owner_id = $1 AND scope = $2", [owner, body.scope]);
-  if (gone.length) {
-    const removed = new Set(gone.map((r) => r.video_id));
-    songs = songs.filter((s: { id: string }) => !removed.has(s.id));
-  }
+  const removed = new Set<string>(gone.map((r) => r.video_id));
+  const dropped = songs.filter((s: { id: string }) => removed.has(s.id)).map((s: { id: string }) => s.id);
+  if (dropped.length) songs = songs.filter((s: { id: string }) => !removed.has(s.id));
 
   const client = await db.connect();
   try {
@@ -51,5 +50,6 @@ export async function PUT(req: Request) {
   } finally {
     client.release();
   }
-  return new Response(null, { status: 204 });
+  // tell the browser which songs the admin removed, so it drops them from its own copy too
+  return Response.json({ removed: dropped });
 }

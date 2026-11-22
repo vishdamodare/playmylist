@@ -112,9 +112,12 @@ export const api = {
     );
     return r.name;
   },
-  /** Mirror this browser's song list for a mood / My Playlist to the server. */
+  /** Mirror this browser's song list to the server; returns ids an admin removed so the caller drops them too. */
   async syncSongs(scope: string, songs: { id: string; title: string; author: string }[]) {
-    await ok<void>(await fetch("/api/songs", { method: "PUT", headers: headers(), body: JSON.stringify({ scope, songs }) }));
+    const r = await ok<{ removed?: string[] } | undefined>(
+      await fetch("/api/songs", { method: "PUT", headers: headers(), body: JSON.stringify({ scope, songs }) })
+    );
+    return r?.removed ?? [];
   },
   async sendFeedback(f: { message: string; rating?: number | null; contact?: string; page?: string }) {
     await ok<void>(await fetch("/api/feedback", { method: "POST", headers: headers(), body: JSON.stringify(f) }));
@@ -132,6 +135,13 @@ export const api = {
       await fetch("/api/playlists", { method: "POST", headers: headers(), body: JSON.stringify({ name, creator, ids }) })
     );
     return toCommunity(playlist);
+  },
+  /** Owner removes one song from their published playlist; returns the remaining ids ([] = playlist removed). */
+  async removeFromPlaylist(id: string, videoId: string) {
+    const { ids } = await ok<{ ids: string[] }>(
+      await fetch(`/api/playlists/${id}`, { method: "PATCH", headers: headers(), body: JSON.stringify({ remove: videoId }) })
+    );
+    return ids;
   },
   async deletePlaylist(id: string) {
     await ok<void>(await fetch(`/api/playlists/${id}`, { method: "DELETE", headers: headers(false) }));
