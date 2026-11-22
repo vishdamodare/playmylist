@@ -1,37 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
-// "Web mode" — off until you tap the 🕸️ button. Turning it on sends our own masked slinger (an original
-// PlayMyList hero: violet suit, glowing visor, trailing scarf) swinging across the screen on two webs with a
-// mid-air flip; while on, every tap shoots a web that splats, double-tap fires a barrage, and a spider
-// sometimes drops in. One fixed canvas, pointer-events: none; the rAF loop only runs while something moves.
+// Web-slinging layer: every tap shoots a web from the wrist (bottom corner) that splats where you hit;
+// double-tap fires a 5-web barrage; now and then a spider drops in on a thread, dangles, and zips back up.
+// One fixed canvas, pointer-events: none, and the rAF loop only runs while something is on screen.
 
 type Shot = { fx: number; fy: number; x: number; y: number; t0: number; hit: boolean };
 type Splat = { x: number; y: number; t0: number; r: number; spokes: number[] };
+type Spider = { x: number; t0: number };
 
 const SHOT_MS = 110, RETRACT_MS = 160, SPLAT_MS = 1600;
-const SWING = 0.95, FLIGHT = 0.4; // seconds per swing / per mid-air flip
-const SWING_A = 1.15; // swing arc: ±66°
 const ease = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
-const inOut = (t: number) => 0.5 - Math.cos(Math.PI * Math.min(1, Math.max(0, t))) / 2;
+// overshoot pop: 0 → ~1.1 → 1
 const pop = (t: number) => (t >= 1 ? 1 : 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2));
 
 export function WebSling() {
   const ref = useRef<HTMLCanvasElement>(null);
-  const [on, setOn] = useState(false);
-  const [reduced, setReduced] = useState(true);
-
-  useEffect(() => setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
 
   useEffect(() => {
-    if (!on) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const cv = ref.current!;
     const ctx = cv.getContext("2d")!;
     let w = 0, h = 0, raf = 0;
     const shots: Shot[] = [], splats: Splat[] = [];
-    let spider: number | null = null, spiderX = 0;
-    let hero: number | null = performance.now(); // entrance swing starts right away
+    let spider: Spider | null = null;
 
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -42,16 +35,19 @@ export function WebSling() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
+
     const kick = () => {
       if (!raf) raf = requestAnimationFrame(frame);
     };
 
     const shoot = (x: number, y: number, delay = 0) => {
-      shots.push({ fx: x < w / 2 ? -10 : w + 10, fy: h + 10, x, y, t0: performance.now() + delay, hit: false });
+      const left = x < w / 2;
+      shots.push({ fx: left ? -10 : w + 10, fy: h + 10, x, y, t0: performance.now() + delay, hit: false });
       kick();
     };
 
     const strand = (ax: number, ay: number, bx: number, by: number) => {
+      // two slightly-sagging strands read as "web", not "laser"
       const mx = (ax + bx) / 2, my = (ay + by) / 2 + Math.hypot(bx - ax, by - ay) * 0.04;
       ctx.beginPath();
       ctx.moveTo(ax, ay);
@@ -73,6 +69,7 @@ export function WebSling() {
         ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
       }
       ctx.stroke();
+      // sagging rings between spokes
       for (let k = 1; k <= 4; k++) {
         const rr = (r * k) / 4.4;
         ctx.beginPath();
@@ -84,6 +81,7 @@ export function WebSling() {
         });
         ctx.stroke();
       }
+      // impact flash ring
       if (t < 0.25) {
         ctx.globalAlpha = 1 - t / 0.25;
         ctx.beginPath();
@@ -94,114 +92,17 @@ export function WebSling() {
       ctx.globalAlpha = 1;
     };
 
-    // The slinger, drawn in rope space: hand at (0,0), body hanging along +y. `tuck` 0..1 pulls the knees in.
-    const drawHero = (t: number, tuck: number) => {
-      const suit = "#3b2a63", trim = "#b48cf0", glow = "#ff6b8b";
-      ctx.save();
-      ctx.lineCap = ctx.lineJoin = "round";
-      ctx.shadowColor = trim;
-      ctx.shadowBlur = 10;
-      // scarf streaming behind, flapping
-      ctx.strokeStyle = "#e8897f";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(-2, 24);
-      for (let i = 1; i <= 6; i++) ctx.lineTo(-i * 7, 22 + Math.sin(t * 22 - i) * 4 + i * 1.5);
-      ctx.stroke();
-      ctx.strokeStyle = suit;
-      // web arm (straight up to the hand) and the free arm reaching forward
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(2, 20);
-      ctx.moveTo(4, 22);
-      ctx.lineTo(16, 30 - tuck * 4);
-      ctx.lineTo(24, 26 - tuck * 8);
-      ctx.stroke();
-      // legs
-      ctx.lineWidth = 7;
-      ctx.beginPath();
-      ctx.moveTo(5, 48);
-      ctx.lineTo(10 + tuck * 10, 62 - tuck * 6);
-      ctx.lineTo(6 + tuck * 2, 76 - tuck * 6);
-      ctx.moveTo(5, 48);
-      ctx.lineTo(2 - tuck * 2, 64 - tuck * 2);
-      ctx.lineTo(-6 + tuck * 12, 78 - tuck * 12);
-      ctx.stroke();
-      // torso
-      ctx.lineWidth = 14;
-      ctx.beginPath();
-      ctx.moveTo(3, 24);
-      ctx.lineTo(5, 46);
-      ctx.stroke();
-      ctx.strokeStyle = trim; // chest stripe
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 0;
-      ctx.beginPath();
-      ctx.moveTo(-2, 30);
-      ctx.lineTo(10, 36);
-      ctx.stroke();
-      // hooded head + glowing visor
-      ctx.fillStyle = suit;
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(-4, 14, 8.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = ctx.shadowColor = glow;
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.roundRect(-7, 11, 12, 4, 2);
-      ctx.fill();
-      ctx.restore();
-    };
-
-    // Two pendulum swings joined by a somersault; returns false once the slinger has left the screen.
-    const heroFrame = (now: number) => {
-      const t = (now - hero!) / 1000;
-      const L = Math.min(h * 0.5, w * 0.32);
-      const ax = [w * 0.28, w * 0.72], ay = -L * 0.15;
-      const at = (i: number, th: number) => [ax[i] + L * Math.sin(th), ay + L * Math.cos(th)];
-      const total = SWING * 2 + FLIGHT;
-      if (t > total + 0.3) return false;
-      ctx.strokeStyle = "rgba(255,255,255,0.9)";
-      ctx.lineWidth = 1.6;
-      let x: number, y: number, rot: number, tuck: number;
-      if (t < SWING || t > SWING + FLIGHT) {
-        const i = t < SWING ? 0 : 1;
-        const k = i ? (t - SWING - FLIGHT) / SWING : t / SWING;
-        const th = -SWING_A + 2 * SWING_A * inOut(k); // left → right
-        [x, y] = at(i, th);
-        const zip = Math.min(1, k * 8); // web shoots up to the anchor at the start of each swing
-        strand(x, y, x + (ax[i] - x) * zip, y + (Math.max(0, ay) - y) * zip);
-        rot = -th;
-        tuck = Math.abs(th) / SWING_A;
-      } else {
-        const k = (t - SWING) / FLIGHT;
-        const [x0, y0] = at(0, SWING_A), [x1, y1] = at(1, -SWING_A);
-        x = x0 + (x1 - x0) * k;
-        y = y0 + (y1 - y0) * k - Math.sin(Math.PI * k) * L * 0.35;
-        rot = -SWING_A + (SWING_A * 2 - Math.PI * 2) * inOut(k); // full flip
-        tuck = 1;
-      }
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(rot);
-      drawHero(t, tuck);
-      ctx.restore();
-      return true;
-    };
-
-    const drawSpider = (now: number) => {
-      const t = (now - spider!) / 1000;
+    const drawSpider = (sp: Spider, now: number) => {
+      const t = (now - sp.t0) / 1000;
       if (t > 4.7) return false;
       const rest = h * 0.32;
       const y =
-        t < 1.2 ? rest * (1 - Math.exp(-5 * t) * Math.cos(9 * t)) : t < 4 ? rest + Math.sin((t - 1.2) * 3) * 6 : rest * (1 - ease((t - 4) / 0.6));
-      const x = spiderX + Math.sin(t * 1.7) * 10;
-      ctx.strokeStyle = "rgba(255,255,255,0.7)";
-      ctx.lineWidth = 1;
+        t < 1.2 ? rest * (1 - Math.exp(-5 * t) * Math.cos(9 * t)) // springy drop
+        : t < 4 ? rest + Math.sin((t - 1.2) * 3) * 6 // dangle
+        : rest * (1 - ease((t - 4) / 0.6)); // zip up
+      const x = sp.x + Math.sin(t * 1.7) * 10;
       ctx.beginPath();
-      ctx.moveTo(spiderX, 0);
+      ctx.moveTo(sp.x, 0);
       ctx.lineTo(x, y - 14);
       ctx.stroke();
       ctx.save();
@@ -209,7 +110,7 @@ export function WebSling() {
       ctx.rotate(Math.sin(t * 1.7) * 0.12);
       ctx.strokeStyle = ctx.fillStyle = "#1a1020";
       ctx.lineWidth = 2.2;
-      for (let i = 0; i < 4; i++)
+      for (let i = 0; i < 4; i++) {
         for (const side of [-1, 1]) {
           const a = (-0.9 + i * 0.55 + Math.sin(t * 14 + i * 1.3) * 0.25) * side;
           const kx = side * 16, ky = -10 + i * 7;
@@ -219,17 +120,19 @@ export function WebSling() {
           ctx.lineTo(kx + side * 10 * Math.cos(a), ky + 12 + Math.abs(Math.sin(a)) * 6);
           ctx.stroke();
         }
+      }
       ctx.beginPath();
-      ctx.ellipse(0, 6, 10, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 6, 10, 12, 0, 0, Math.PI * 2); // abdomen
       ctx.fill();
       ctx.beginPath();
-      ctx.ellipse(0, -8, 7, 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, -8, 7, 6, 0, 0, Math.PI * 2); // head
       ctx.fill();
+      const blink = Math.sin(t * 2.3) > 0.97 ? 0.3 : 1;
       ctx.fillStyle = ctx.shadowColor = "#ff6b8b";
       ctx.shadowBlur = 8;
       for (const ex of [-3, 3]) {
         ctx.beginPath();
-        ctx.ellipse(ex, -9, 1.8, Math.sin(t * 2.3) > 0.97 ? 0.6 : 2.2, 0, 0, Math.PI * 2);
+        ctx.ellipse(ex, -9, 1.8, 2.2 * blink, 0, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -269,17 +172,19 @@ export function WebSling() {
         else drawSplat(splats[i], now);
       }
       ctx.shadowBlur = 0;
-      if (hero !== null && !heroFrame(now)) hero = null;
-      if (spider !== null && !drawSpider(now)) spider = null;
-      if (shots.length || splats.length || hero !== null || spider !== null) kick();
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
+      ctx.lineWidth = 1;
+      if (spider && !drawSpider(spider, now)) spider = null;
+
+      if (shots.length || splats.length || spider) kick();
     }
-    kick();
 
     let last = 0;
     const onDown = (e: PointerEvent) => {
-      if (e.button !== 0 || (e.target as Element).closest?.(".pml-websling")) return;
+      if (e.button !== 0) return;
       const now = performance.now();
       if (now - last < 300) {
+        // double-tap: web barrage fanning out around the tap
         for (let i = 0; i < 5; i++) {
           const a = (i / 5) * Math.PI * 2;
           shoot(e.clientX + Math.cos(a) * 120, e.clientY + Math.sin(a) * 90, i * 60);
@@ -290,14 +195,13 @@ export function WebSling() {
 
     let timer: ReturnType<typeof setTimeout>;
     const dropSpider = () => {
-      if (!document.hidden && spider === null) {
-        spiderX = w * (0.15 + Math.random() * 0.7);
-        spider = performance.now();
+      if (!document.hidden && !spider) {
+        spider = { x: w * (0.15 + Math.random() * 0.7), t0: performance.now() };
         kick();
       }
-      timer = setTimeout(dropSpider, 25000 + Math.random() * 20000);
+      timer = setTimeout(dropSpider, 30000 + Math.random() * 20000);
     };
-    timer = setTimeout(dropSpider, 8000);
+    timer = setTimeout(dropSpider, 6000);
 
     window.addEventListener("pointerdown", onDown, { passive: true });
     window.addEventListener("resize", resize);
@@ -306,27 +210,14 @@ export function WebSling() {
       window.removeEventListener("resize", resize);
       clearTimeout(timer);
       cancelAnimationFrame(raf);
-      ctx.clearRect(0, 0, w, h);
     };
-  }, [on]);
+  }, []);
 
-  if (reduced) return null;
   return (
-    <>
-      <canvas
-        ref={ref}
-        aria-hidden="true"
-        style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", pointerEvents: "none", zIndex: 9999 }}
-      />
-      <button
-        className="pml-websling"
-        aria-pressed={on}
-        title={on ? "Web mode on — tap anywhere to shoot webs, double-tap for a barrage" : "Web mode"}
-        onClick={() => setOn((v) => !v)}
-      >
-        <span aria-hidden="true">🕸️</span>
-        <span className="pml-websling-label">{on ? "Web mode on" : "Web mode"}</span>
-      </button>
-    </>
+    <canvas
+      ref={ref}
+      aria-hidden="true"
+      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", pointerEvents: "none", zIndex: 9999 }}
+    />
   );
 }

@@ -6420,17 +6420,3 @@ button.pml-player-from:focus-visible { outline: 2px solid var(--pa); outline-off
   transition: border-color .2s ease, background .2s ease;
 }
 .pml-mp-makefor button:hover { border-color: #e8897f; background: rgba(232,137,127,.12); }
-
-/* Web mode toggle (components/WebSling): a small pill on the left edge, clear of the header and the player bar */
-.pml-websling {
-  position: fixed; left: 12px; top: 50%; transform: translateY(-50%); z-index: 10001;
-  display: flex; align-items: center; gap: 6px; padding: 8px 12px 8px 10px; border-radius: 999px;
-  background: rgba(27, 18, 48, .72); border: 1px solid rgba(180, 140, 240, .45); color: #ece6f5;
-  font: 600 12px/1 system-ui, -apple-system, sans-serif; letter-spacing: .02em; cursor: pointer;
-  backdrop-filter: blur(8px); transition: background .2s, border-color .2s, box-shadow .2s;
-}
-.pml-websling span:first-child { font-size: 16px; }
-.pml-websling:hover { border-color: rgba(180, 140, 240, .9); }
-.pml-websling[aria-pressed="true"] { background: rgba(255, 107, 139, .22); border-color: #ff6b8b; box-shadow: 0 0 16px rgba(255, 107, 139, .45); }
-.pml-websling:focus-visible { outline: 2px solid #b48cf0; outline-offset: 2px; }
-@media (max-width: 640px) { .pml-websling { padding: 8px; } .pml-websling-label { display: none; } }
