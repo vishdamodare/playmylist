@@ -18,7 +18,6 @@ import { moodQueue, shuffled, syncAllSongs } from "@/lib/moodSongs";
 import { SkyToggle } from "@/components/SkyToggle";
 import { NamePrompt } from "@/components/NamePrompt";
 import { Feedback } from "@/components/Feedback";
-import { WebSling } from "@/components/WebSling";
 
 /** "home", "playlist" (yours), a browse page, or a mood slug. */
 type View = string;
@@ -177,7 +176,6 @@ export function PlayMyList({ initialView = "home" }: { initialView?: View }) {
 
   return (
     <div className="pml" data-sky={skyMode}>
-      <WebSling />
       {/* morning sunlight over every inner page (home draws its own sky) */}
       {skyMode === "morning" && view !== "home" && <div className="pml-sunlight" aria-hidden="true" />}
       {activeMood ? (
